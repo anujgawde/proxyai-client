@@ -1,16 +1,14 @@
 "use client";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import Image from "next/image";
-import { Target, User } from "lucide-react";
+import { Bell, Target } from "lucide-react";
 import Link from "next/link";
+import { Button } from "../ui/button";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isHidden, setIsHidden] = useState(false);
-
-  const router = useRouter();
 
   useEffect(() => {
     const hiddenValue = pathname.includes("/auth");
@@ -25,15 +23,19 @@ export default function Navbar() {
     >
       <div className="flex items-center justify-center text-2xl text-[#003627] font-thin space-x-2 py-2">
         <Link href="/meetings">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#1e2738] rounded-lg flex items-center justify-center">
             <Target className="w-5 h-5 text-white" />
           </div>
         </Link>
-        <span className="text-2xl font-bold text-slate-900">ProxyAI</span>
+        <span className="text-2xl font-semibold text-[#1e2738]">ProxyAI</span>
       </div>
 
       <div className="items-center space-x-2 flex">
-        <div className="flex space-x-2 items-center"></div>
+        <div className="flex space-x-2 items-center">
+          <Button className="p-0" disabled variant={"ghost"}>
+            <Bell />
+          </Button>
+        </div>
       </div>
     </div>
   );

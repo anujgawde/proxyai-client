@@ -9,7 +9,7 @@ interface SideNavigationTabProps {
   navigateTo: string;
   label: string;
   icon: React.ReactNode;
-  placement: string; // "top" | bottom
+  placement: string; // "top" | "bottom"
 }
 
 export default function SideNavigationTab(props: SideNavigationTabProps) {
@@ -17,7 +17,7 @@ export default function SideNavigationTab(props: SideNavigationTabProps) {
 
   const content = (
     <div
-      className={`rounded-xl py-2 px-4 flex items-center space-x-4 z-50
+      className={`rounded-full py-3 px-3 flex items-center space-x-4 z-50
         ${
           isDisabled
             ? "opacity-50 cursor-not-allowed"

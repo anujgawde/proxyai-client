@@ -1,12 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Calendar,
-  Folders,
-  User,
-  Settings,
-} from "lucide-react";
+import { LayoutDashboard, Calendar, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import SideNavigationTab from "./SideNavigationTab";
 
@@ -53,7 +47,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`bg-white  px-2 flex-col items-center border-r border-gray-200 py-4 md:flex ${
+      className={`bg-white  px-3 flex-col items-center border-r border-gray-200 py-4 md:flex ${
         isHidden ? "hidden" : "flex"
       }`}
     >

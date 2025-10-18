@@ -1,19 +1,47 @@
-import { auth } from "@/lib/firebase";
-import { authService } from "../auth";
 import { api } from "../api";
+interface UpdateUserDto {
+  firstName?: string;
+  lastName?: string;
+  photoURL?: string;
+}
 
 class UsersService {
-  async getUserProfile(firebaseUid: string) {
-    const userData = await api.get(`/users/${firebaseUid}`);
-    return userData.data;
+  // Get current user's profile
+  async getMyProfile() {
+    const response = await api.get("/users/me");
+    return response.data;
   }
 
-  async updateUserProfile(data: any) {
-    const headers = await authService.getAuthHeaders();
+  // Update current user's profile
+  async updateMyProfile(updatedUserData: UpdateUserDto) {
+    const response = await api.patch("/users/me", updatedUserData);
+    return response.data;
+  }
 
-    const userProfileData = await api.patch("/users/me", data, { headers });
+  // No usage yet:
 
-    return userProfileData.data;
+  // Get user profile by ID
+  async getUserProfile(id: string) {
+    const response = await api.get(`/users/${id}`);
+    return response.data;
+  }
+
+  // Delete current user's account
+  async deleteMyAccount() {
+    const response = await api.delete("/users/me");
+    return response.data;
+  }
+
+  // Update user profile by ID (admin functionality)
+  async updateUserProfile(id: string, updatedUserData: UpdateUserDto) {
+    const response = await api.patch(`/users/${id}`, updatedUserData);
+    return response.data;
+  }
+
+  // Get all users (admin functionality)
+  async getAllUsers() {
+    const response = await api.get("/users");
+    return response.data;
   }
 }
 
