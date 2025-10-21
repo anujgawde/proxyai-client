@@ -4,22 +4,26 @@ import { CreateMeetingDialog } from "@/components/meetings/CreateMeetingDialog";
 import MeetingsPageHeader from "@/components/meetings/MeetingsPageHeader";
 import { useState, useEffect } from "react";
 import { meetingsService } from "@/api/meetings";
-import { Meeting } from "@/types/meetings";
+import { MeetingListItem } from "@/types/meetings";
 import { Calendar, Users, Loader2, Clock, Eye, Radio } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { socketService } from "@/lib/socket";
+import ViewDetailsDialog from "@/components/meetings/ViewDetailsDialog";
 
 export default function MeetingsPage() {
   const [isCreateMeetingDialogOpen, setIsCreateMeetingDialogOpen] =
     useState(false);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetings, setMeetings] = useState<MeetingListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { currentUser } = useAuth();
 
+  const [selectedMeeting, setSelectedMeeting] =
+    useState<MeetingListItem | null>(null);
   const router = useRouter();
 
   const fetchMeetings = async () => {
@@ -40,18 +44,65 @@ export default function MeetingsPage() {
     fetchMeetings();
   }, []);
 
+  // Initialize socket
+  useEffect(() => {
+    if (!currentUser?.email) return;
+
+    socketService.initialize(currentUser.email);
+  }, [currentUser?.email]);
+
+  // Socket listeners for real-time updates
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    console.log("Setting up socket listeners for meetings page");
+
+    const handleMeetingStarted = (updatedMeeting: any) => {
+      console.log("Meeting started:", updatedMeeting);
+      setMeetings((prev) =>
+        prev.map((m) =>
+          m.id === updatedMeeting.id ? { ...m, ...updatedMeeting } : m
+        )
+      );
+    };
+
+    const handleMeetingEnded = (updatedMeeting: any) => {
+      console.log("Meeting ended:", updatedMeeting);
+      setMeetings((prev) =>
+        prev.map((m) =>
+          m.id === updatedMeeting.id ? { ...m, ...updatedMeeting } : m
+        )
+      );
+    };
+
+    const handleNewTranscript = (entry: any) => {
+      console.log("New transcript entry received:", entry);
+      // Optionally update meeting transcript count or show notification
+    };
+
+    socketService.on("meeting-started", handleMeetingStarted);
+    socketService.on("meeting-ended", handleMeetingEnded);
+    socketService.on("new-transcript", handleNewTranscript);
+
+    return () => {
+      socketService.off("meeting-started", handleMeetingStarted);
+      socketService.off("meeting-ended", handleMeetingEnded);
+      socketService.off("new-transcript", handleNewTranscript);
+    };
+  }, []);
+
   const handleJoinMeeting = (meetingId: number) => {
     console.log("Joining meeting:", meetingId);
-    router.push(`meetings/${meetingId}`);
-    // TODO: Implement join meeting logic (connect with sockets/api)
+    router.push(`/meetings/${meetingId}`);
   };
 
-  const handleViewDetails = (meetingId: number) => {
-    console.log("Viewing meeting details:", meetingId);
-    // TODO: Implement view details logic (Open dialog which displays transcripts, summaries and allows QnA with RAG Model)
+  const handleViewDetails = (meeting: MeetingListItem) => {
+    // TODO: Implement view details logic
+    setSelectedMeeting(meeting);
   };
 
-  const canJoinMeeting = (meeting: Meeting) => {
+  const canJoinMeeting = (meeting: MeetingListItem) => {
     if (!currentUser) return false;
     return (
       (meeting.status === "ongoing" || meeting.status === "scheduled") &&
@@ -59,7 +110,7 @@ export default function MeetingsPage() {
     );
   };
 
-  const getDuration = (meeting: Meeting) => {
+  const getDuration = (meeting: MeetingListItem) => {
     if (!meeting.startedAt) return "Not started";
 
     const start = new Date(meeting.startedAt);
@@ -73,6 +124,14 @@ export default function MeetingsPage() {
     }
     return `${minutes}m`;
   };
+
+  // const getLatestSummary = (meeting: Meeting) => {
+  //   if (!meeting.summaries || meeting.summaries.length === 0)
+  //     return "No summaries yet...";
+  //   const latest = meeting.summaries[meeting.summaries.length - 1];
+  //   if (!latest) return "No summaries yet...";
+  //   return latest.content.substring(0, 100) + "...";
+  // };
 
   return (
     <div>
@@ -88,8 +147,8 @@ export default function MeetingsPage() {
       />
 
       {/* Meetings List */}
-      <div className="container mx-auto px-4 py-8">
-        {loading ? (
+      <div className="p-8">
+        {loading || !socketService.getConnectionStatus() ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
           </div>
@@ -114,12 +173,11 @@ export default function MeetingsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex items-start w-full">
             {meetings.map((meeting) => {
               const scheduledStart = new Date(meeting.scheduledStart);
               const scheduledEnd = new Date(meeting.scheduledEnd);
 
-              // Quick Fix to display correct date. Displaying t - 1 date otherwise.
               const scheduledOnParts = meeting.scheduledOn.split("-");
               const scheduledOn = new Date(
                 parseInt(scheduledOnParts[0]),
@@ -128,10 +186,13 @@ export default function MeetingsPage() {
               );
 
               return (
-                <Card key={meeting.id} className="border-gray-200 shadow-md">
+                <Card
+                  key={meeting.id}
+                  className="border-gray-200 shadow-md w-1/4 gap-0"
+                >
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-sm font-semibold flex-1 min-w-0 pr-2">
+                    <div className="flex items-center">
+                      <CardTitle className="text-lg font-semibold min-w-0 pr-2">
                         {meeting.title}
                       </CardTitle>
                       <span
@@ -181,18 +242,6 @@ export default function MeetingsPage() {
                         </span>
                       </div>
 
-                      {/* Meeting Room */}
-                      {meeting.meetingRoomName && (
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <div className="w-3.5 h-3.5 flex-shrink-0 flex items-center justify-center">
-                            🏠
-                          </div>
-                          <span className="truncate">
-                            {meeting.meetingRoomName}
-                          </span>
-                        </div>
-                      )}
-
                       {/* Duration for started/ended meetings */}
                       {meeting.startedAt && (
                         <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -201,34 +250,33 @@ export default function MeetingsPage() {
                         </div>
                       )}
 
-                      {/* Participants List */}
-                      {meeting.participants.length > 0 && (
-                        <div className="pt-2 border-t border-gray-100">
-                          <p className="text-xs text-gray-500 mb-2">
-                            Participants:
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {meeting.participants
-                              .slice(0, 3)
-                              .map((email, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
-                                >
-                                  {email}
-                                </span>
-                              ))}
-                            {meeting.participants.length > 3 && (
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                +{meeting.participants.length - 3} more
-                              </span>
-                            )}
+                      <div className="space-y-3 mb-4">
+                        {/* Latest Summary Preview */}
+                        {meeting.latestSummary && (
+                          <div className="bg-green-50 rounded-md p-3">
+                            <p className="text-xs font-medium text-green-700 mb-1">
+                              Latest Summary:
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              {meeting.latestSummary}
+                            </p>
                           </div>
-                        </div>
-                      )}
+                        )}
+
+                        {/* No content message */}
+                        {!meeting.latestSummary && (
+                          <div className="bg-gray-50 rounded-md p-3">
+                            <p className="text-sm text-gray-500 italic">
+                              {meeting.status === "scheduled"
+                                ? "Meeting not started yet"
+                                : "No summaries found."}
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Action Buttons */}
-                      <div className="flex gap-2 pt-3">
+                      <div className="flex gap-2">
                         {canJoinMeeting(meeting) && (
                           <Button
                             onClick={() => handleJoinMeeting(meeting.id)}
@@ -248,7 +296,7 @@ export default function MeetingsPage() {
 
                         {meeting.status === "ended" && (
                           <Button
-                            onClick={() => handleViewDetails(meeting.id)}
+                            onClick={() => handleViewDetails(meeting)}
                             variant="outline"
                             size="sm"
                             className="flex-1 h-8"
@@ -264,6 +312,19 @@ export default function MeetingsPage() {
               );
             })}
           </div>
+        )}
+      </div>
+
+      <div className="w-full">
+        {selectedMeeting && (
+          <ViewDetailsDialog
+            meeting={selectedMeeting}
+            isOpen={!!selectedMeeting}
+            onClose={() => {
+              setSelectedMeeting(null);
+            }}
+            currentUser={currentUser!}
+          />
         )}
       </div>
     </div>

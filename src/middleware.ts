@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const session = request.cookies.get("__session");
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/auth");
-  // Add any other protected routes here
+  // Any other protected routes here
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/settings") ||
     request.nextUrl.pathname.startsWith("/dashboard") ||
@@ -29,7 +29,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Add all routes that need auth checking
+    // All routes that need auth checking
     "/settings/:path*",
     "/dashboard/:path*",
     "/meetings/:path*",

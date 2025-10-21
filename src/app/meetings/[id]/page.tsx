@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { meetingsService } from "@/api/meetings";
 import { Meeting } from "@/types/meetings";
 import { useAuth } from "@/contexts/AuthContext";
+import { socketService } from "@/lib/socket";
 
 export default function MeetingDetailPage() {
   const params = useParams();
@@ -41,6 +42,7 @@ export default function MeetingDetailPage() {
   const [isMeetingStarted, setIsMeetingStarted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState<string[]>([]);
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
@@ -66,6 +68,101 @@ export default function MeetingDetailPage() {
       }
     };
   }, [id]);
+
+  // Initialize socket
+  useEffect(() => {
+    if (!currentUser?.email) return;
+
+    socketService.initialize(currentUser.email);
+  }, [currentUser?.email]);
+
+  // Socket listeners
+  useEffect(() => {
+    if (!meeting || !currentUser?.email) return;
+
+    const socket = socketService.getSocket();
+    if (!socket || !socket.connected) return;
+
+    console.log("Setting up socket listeners for meeting:", id);
+
+    // Track if we've already joined
+    let hasJoined = false;
+
+    const handleConnect = () => {
+      if (!hasJoined) {
+        socketService.joinMeeting(id, currentUser.email!);
+        hasJoined = true;
+      }
+    };
+
+    // Join if already connected, or wait for connection
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.on("connect", handleConnect);
+    }
+
+    const handleMeetingStarted = (updatedMeeting: any) => {
+      if (updatedMeeting.id === id) {
+        console.log("Meeting started:", updatedMeeting);
+        setMeeting(updatedMeeting);
+        setIsMeetingStarted(true);
+      }
+    };
+
+    const handleMeetingEnded = (updatedMeeting: any) => {
+      if (updatedMeeting.id === id) {
+        console.log("Meeting ended:", updatedMeeting);
+        setMeeting(updatedMeeting);
+        setIsMeetingStarted(false);
+        if (isRecording) {
+          stopRecording();
+        }
+      }
+    };
+
+    const handleNewTranscript = (entry: any) => {
+      if (entry.meetingId === id) {
+        console.log("New transcript entry:", entry);
+        const timestamp = format(new Date(entry.timestamp), "HH:mm:ss");
+        setTranscript((prev) => {
+          // Prevent duplicates by checking if entry already exists
+          const entryText = `[${timestamp}] ${entry.speaker}: ${entry.text}`;
+          if (prev.includes(entryText)) {
+            return prev;
+          }
+          return [...prev, entryText];
+        });
+      }
+    };
+
+    const handleUserJoined = ({ userEmail }: { userEmail: string }) => {
+      console.log(`User ${userEmail} joined the meeting`);
+    };
+
+    const handleUserLeft = ({ userEmail }: { userEmail: string }) => {
+      console.log(`User ${userEmail} left the meeting`);
+    };
+
+    socketService.on("meeting-started", handleMeetingStarted);
+    socketService.on("meeting-ended", handleMeetingEnded);
+    socketService.on("new-transcript", handleNewTranscript);
+    socketService.on("user-joined-meeting", handleUserJoined);
+    socketService.on("user-left-meeting", handleUserLeft);
+
+    return () => {
+      socketService.off("meeting-started", handleMeetingStarted);
+      socketService.off("meeting-ended", handleMeetingEnded);
+      socketService.off("new-transcript", handleNewTranscript);
+      socketService.off("user-joined-meeting", handleUserJoined);
+      socketService.off("user-left-meeting", handleUserLeft);
+      socketService.off("connect", handleConnect);
+
+      if (hasJoined) {
+        socketService.leaveMeeting(id, currentUser.email!);
+      }
+    };
+  }, [meeting?.id, currentUser?.email, isRecording]);
 
   useEffect(() => {
     // Jitsi initialization on meeting load
@@ -100,11 +197,19 @@ export default function MeetingDetailPage() {
       setLoading(true);
       setError(null);
 
-      // Quick fix to handle id of type string | string[]
       const meetingId = Array.isArray(id) ? id[0] : id;
       const data = await meetingsService.getMeetingById(meetingId!);
       setMeeting(data);
       setIsMeetingStarted(data.status === "ongoing");
+
+      // Load existing transcripts
+      if (data.transcript && data.transcript.length > 0) {
+        const existingTranscripts = data.transcript.map((entry: any) => {
+          const timestamp = format(new Date(entry.timestamp), "HH:mm:ss");
+          return `[${timestamp}] ${entry.speaker}: ${entry.text}`;
+        });
+        setTranscript(existingTranscripts);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load meeting details");
       console.error("Error fetching meeting:", err);
@@ -116,7 +221,6 @@ export default function MeetingDetailPage() {
   const initializeJitsi = () => {
     if (!meeting || !jitsiContainerRef.current) return;
 
-    // Clearing existing instance
     if (jitsiApiRef.current) {
       jitsiApiRef.current.dispose();
     }
@@ -165,7 +269,6 @@ export default function MeetingDetailPage() {
       options
     );
 
-    // Adding event listeners
     jitsiApiRef.current.addListener("videoConferenceJoined", () => {
       console.log("Joined conference");
     });
@@ -177,7 +280,6 @@ export default function MeetingDetailPage() {
 
   const handleStartMeeting = async () => {
     try {
-      // Todo: Connect with socketio to enable real time meeting updates
       await meetingsService.startMeeting(meeting!.id);
       setIsMeetingStarted(true);
       setMeeting({ ...meeting!, status: "ongoing" });
@@ -194,7 +296,6 @@ export default function MeetingDetailPage() {
       if (isRecording) {
         stopRecording();
       }
-      // Todo: Connect with socketio to enable real time meeting updates
       await meetingsService.endMeeting(meeting!.id);
       router.push("/meetings");
     } catch (err: any) {
@@ -219,41 +320,72 @@ export default function MeetingDetailPage() {
     recognitionRef.current.lang = "en-US";
 
     recognitionRef.current.onresult = (event: any) => {
+      let interimTranscript = "";
       let finalTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcriptPiece = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += transcriptPiece + " ";
+        } else {
+          interimTranscript += transcriptPiece;
         }
       }
 
-      if (finalTranscript) {
+      // Show live typing effect for interim results
+      if (interimTranscript) {
         const timestamp = format(new Date(), "HH:mm:ss");
-        setTranscript((prev) => [
-          ...prev,
-          `[${timestamp}] ${finalTranscript.trim()}`,
-        ]);
+        setLiveTranscript(
+          `[${timestamp}] ${
+            currentUser?.email || "Unknown"
+          }: ${interimTranscript}`
+        );
+      } else if (!finalTranscript) {
+        // Clear live transcript if no interim and no final
+        setLiveTranscript("");
+      }
+
+      // Send final transcript and clear live display
+      if (finalTranscript) {
+        setLiveTranscript(""); // Clear live transcript immediately
+        const timestamp = new Date().toISOString();
+
+        socketService.sendTranscriptUpdate(
+          id,
+          currentUser?.email || "Unknown",
+          finalTranscript.trim(),
+          timestamp
+        );
+
+        socketService.updateRecordingStatus(
+          id,
+          currentUser?.email || "Unknown",
+          true
+        );
       }
     };
 
     recognitionRef.current.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
       if (event.error === "no-speech") {
-        // Restart if no speech detected
         recognitionRef.current?.start();
       }
     };
 
     recognitionRef.current.onend = () => {
       if (isRecording) {
-        // Restart if still recording
         recognitionRef.current?.start();
       }
     };
 
     recognitionRef.current.start();
     setIsRecording(true);
+
+    socketService.updateRecordingStatus(
+      id,
+      currentUser?.email || "Unknown",
+      true
+    );
   };
 
   const stopRecording = () => {
@@ -262,6 +394,13 @@ export default function MeetingDetailPage() {
       recognitionRef.current = null;
     }
     setIsRecording(false);
+    setLiveTranscript(""); // Clear any live transcript
+
+    socketService.updateRecordingStatus(
+      id,
+      currentUser?.email || "Unknown",
+      false
+    );
   };
 
   const downloadTranscript = () => {
@@ -368,6 +507,9 @@ export default function MeetingDetailPage() {
                   Live
                 </span>
               )}
+              {!socketService.getConnectionStatus() && (
+                <span className="text-xs text-gray-500">Connecting...</span>
+              )}
             </div>
           </div>
         </div>
@@ -384,14 +526,7 @@ export default function MeetingDetailPage() {
                 <div
                   ref={jitsiContainerRef}
                   className="w-full h-[600px] bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center"
-                >
-                  {/* {!jitsiApiRef.current && (
-                    <div className="text-white text-center">
-                      <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg">Loading video conference...</p>
-                    </div>
-                  )} */}
-                </div>
+                />
               </CardContent>
             </Card>
 
@@ -523,21 +658,30 @@ export default function MeetingDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="max-h-[300px] overflow-y-auto space-y-2">
-                  {transcript.length === 0 ? (
+                  {transcript.length === 0 && !liveTranscript ? (
                     <p className="text-sm text-gray-500 text-center py-8">
                       {isRecording
                         ? "Listening... Start speaking to see transcript"
                         : "Start recording to see live transcript"}
                     </p>
                   ) : (
-                    transcript.map((line, idx) => (
-                      <div
-                        key={idx}
-                        className="text-sm text-gray-700 p-2 bg-gray-50 rounded"
-                      >
-                        {line}
-                      </div>
-                    ))
+                    <>
+                      {liveTranscript && (
+                        <div className="text-sm text-gray-700 p-2 bg-blue-50 rounded">
+                          {liveTranscript}
+                        </div>
+                      )}
+                      {transcript
+                        .map((line, idx) => (
+                          <div
+                            key={idx}
+                            className="text-sm text-gray-700 p-2 bg-gray-50 rounded"
+                          >
+                            {line}
+                          </div>
+                        ))
+                        .reverse()}
+                    </>
                   )}
                 </div>
               </CardContent>

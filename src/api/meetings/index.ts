@@ -35,10 +35,10 @@ class MeetingsService {
   }
 
   // Update meeting
-  async updateMeeting(id: string, meetingData: UpdateMeetingDto) {
-    const response = await api.patch(`/meetings/${id}`, meetingData);
-    return response.data;
-  }
+  // async updateMeeting(id: string, meetingData: UpdateMeetingDto) {
+  //   const response = await api.patch(`/meetings/${id}`, meetingData);
+  //   return response.data;
+  // }
 
   // Delete meeting
   async deleteMeeting(id: string) {
@@ -82,9 +82,17 @@ class MeetingsService {
     return response.data;
   }
 
-  async startMeeting(id: number) {}
+  // Start meeting
+  async startMeeting(id: number | string) {
+    const response = await api.post(`/meetings/${id}/start`);
+    return response.data;
+  }
 
-  async endMeeting(id: number) {}
+  // End meeting
+  async endMeeting(id: number | string) {
+    const response = await api.post(`/meetings/${id}/end`);
+    return response.data;
+  }
 }
 
 export const meetingsService = new MeetingsService();
