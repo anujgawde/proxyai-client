@@ -173,7 +173,7 @@ export default function MeetingsPage() {
             </p>
           </div>
         ) : (
-          <div className="flex items-start w-full">
+          <div className="flex items-start w-full space-x-4">
             {meetings.map((meeting) => {
               const scheduledStart = new Date(meeting.scheduledStart);
               const scheduledEnd = new Date(meeting.scheduledEnd);
@@ -280,12 +280,13 @@ export default function MeetingsPage() {
                         {canJoinMeeting(meeting) && (
                           <Button
                             onClick={() => handleJoinMeeting(meeting.id)}
-                            className={`flex-1 ${
-                              meeting.status === "ongoing" &&
-                              "bg-red-600 hover:bg-red-700 text-white"
-                            }`}
+                            className={`flex-1 `}
                             size="sm"
-                            variant="outline"
+                            variant={
+                              meeting.status === "ongoing"
+                                ? "destructive"
+                                : `outline`
+                            }
                           >
                             {meeting.status === "ongoing" && (
                               <Radio className="h-3 w-3 mr-1" />
@@ -294,7 +295,7 @@ export default function MeetingsPage() {
                           </Button>
                         )}
 
-                        {meeting.status === "ended" && (
+                        {meeting.status !== "scheduled" && (
                           <Button
                             onClick={() => handleViewDetails(meeting)}
                             variant="outline"

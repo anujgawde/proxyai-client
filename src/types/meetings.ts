@@ -31,14 +31,23 @@ export type MeetingListItem = Pick<
   latestSummary: string;
 };
 
+// Todo: Replace TranscriptData with TranscriptSegment
+export interface TranscriptData {
+  speakerEmail: string;
+  speakerName: string;
+  text: string;
+  timestamp: string;
+}
 // Transcript:
 export interface TranscriptEntry {
   id: number;
-  speaker: string;
-  text: string;
-  timestamp: Date;
+
+  transcript: TranscriptData[];
+
   meetingId: string;
-  createdAt: Date;
+
+  timeStart: string; // ISO String
+  timeEnd: string;
 }
 
 // Summary:

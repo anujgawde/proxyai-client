@@ -1,8 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import {
-  User,
+  User as FirebaseUser,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -12,6 +18,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { authService } from "@/api/auth";
+import { User } from "@/types/user";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -41,22 +48,31 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Keep Firebase user in a ref for token operations
+  const firebaseUserRef = useRef<FirebaseUser | null>(null);
 
   // Helper function to set session cookie
-  const setSessionCookie = async (user: User | null) => {
-    if (user) {
+  const setSessionCookie = async (fbUser: FirebaseUser | null) => {
+    if (fbUser) {
       try {
-        const token = await user.getIdToken();
-        // Set cookie with the token
-        // Expires in 1 hour (3600 seconds)
+        const token = await fbUser.getIdToken();
         document.cookie = `__session=${token}; path=/; max-age=3600; samesite=strict; secure`;
       } catch (error) {
         console.error("Error setting session cookie:", error);
       }
     } else {
-      // Remove cookie on logout
       document.cookie =
         "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; samesite=strict";
+    }
+  };
+
+  const fetchBackendUser = async (): Promise<User | null> => {
+    try {
+      const backendUser = await authService.getUserProfile();
+      return backendUser;
+    } catch (error) {
+      console.error("Error fetching backend user:", error);
+      return null;
     }
   };
 
@@ -74,18 +90,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       const userData = {
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
+        firstName,
+        lastName,
+        email,
         photoURL: user.photoURL,
         metadata: user.metadata,
         firebaseUid: user.uid,
         emailVerified: user.emailVerified,
         authProvider: user.providerData[0]?.providerId || "firebase",
       };
-      await authService.signUp(userData);
 
-      // Set session cookie after signup
+      const backendUser = await authService.signUp(userData);
+
+      // Store Firebase user in ref
+      firebaseUserRef.current = user;
+      setCurrentUser(backendUser);
+
+      // Set session cookie with Firebase user
       await setSessionCookie(user);
     } catch (error: any) {
       throw new Error(getFirebaseErrorMessage(error.code));
@@ -94,11 +115,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await signInWithEmailAndPassword(auth, email, password);
-      console.log(response);
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
 
-      // Set session cookie after signin
-      await setSessionCookie(response.user);
+      // Fetch backend user
+      const backendUser = await fetchBackendUser();
+
+      // Store Firebase user in ref
+      firebaseUserRef.current = user;
+      setCurrentUser(backendUser);
+
+      // Set session cookie with Firebase user
+      await setSessionCookie(user);
     } catch (error: any) {
       throw new Error(getFirebaseErrorMessage(error.code));
     }
@@ -108,7 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { user } = await signInWithPopup(auth, googleProvider);
 
-      console.log("Google sign-in user:", user);
       let firstName = "";
       let lastName = "";
 
@@ -129,11 +155,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authProvider: user.providerData[0]?.providerId || "firebase",
       };
 
-      const response = await authService.googleSignIn(userData);
+      const backendUser = await authService.googleSignIn(userData);
 
-      console.log(response);
+      // Store Firebase user in ref
+      firebaseUserRef.current = user;
+      setCurrentUser(backendUser);
 
-      // Set session cookie after Google signin
+      // Set session cookie with Firebase user
       await setSessionCookie(user);
     } catch (error: any) {
       throw new Error(getFirebaseErrorMessage(error.code));
@@ -143,7 +171,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
-      // Remove session cookie on logout
+
+      // Clear both
+      firebaseUserRef.current = null;
+      setCurrentUser(null);
+
+      // Remove session cookie
       await setSessionCookie(null);
     } catch (error: any) {
       throw new Error(getFirebaseErrorMessage(error.code));
@@ -159,12 +192,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        // Store Firebase user in ref
+        firebaseUserRef.current = fbUser;
 
-      // Set or remove session cookie based on auth state
-      await setSessionCookie(user);
+        // Fetch backend user
+        const backendUser = await fetchBackendUser();
+        setCurrentUser(backendUser);
 
+        // Set session cookie with Firebase user
+        await setSessionCookie(fbUser);
+      } else {
+        firebaseUserRef.current = null;
+        setCurrentUser(null);
+        await setSessionCookie(null);
+      }
       setLoading(false);
     });
 

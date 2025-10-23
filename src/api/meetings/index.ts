@@ -20,6 +20,14 @@ class MeetingsService {
     return response.data;
   }
 
+  async getMeetingTranscripts(id: string, page: number, limit: number) {
+    const response = await api.get(
+      `/meetings/${id}/transcripts?page=${page}&limit=${limit}`
+    );
+
+    return response.data;
+  }
+
   // No usage Yet:
 
   // Get meetings with query parameters

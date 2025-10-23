@@ -45,6 +45,16 @@ class AuthService {
       throw error;
     }
   }
+
+  async getUserProfile() {
+    try {
+      const response = await api.get("/users/me");
+      return response.data;
+    } catch (error) {
+      console.error("Refresh failed:", error);
+      throw error;
+    }
+  }
 }
 
 export const authService = new AuthService();

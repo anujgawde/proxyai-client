@@ -27,6 +27,16 @@ import { Meeting } from "@/types/meetings";
 import { useAuth } from "@/contexts/AuthContext";
 import { socketService } from "@/lib/socket";
 
+interface TranscriptSegment {
+  speakerEmail: string;
+  speakerName: string;
+  text: string;
+  timestamp: string;
+  entryId?: number;
+  batchTimeStart?: string;
+  batchTimeEnd?: string;
+}
+
 export default function MeetingDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -45,6 +55,11 @@ export default function MeetingDetailPage() {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  // Transcript pagination
+  const [transcriptPage, setTranscriptPage] = useState(1);
+  const [hasMoreTranscripts, setHasMoreTranscripts] = useState(false);
+  const [loadingTranscripts, setLoadingTranscripts] = useState(false);
 
   // Jitsi
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
@@ -125,13 +140,16 @@ export default function MeetingDetailPage() {
       if (entry.meetingId === id) {
         console.log("New transcript entry:", entry);
         const timestamp = format(new Date(entry.timestamp), "HH:mm:ss");
+
         setTranscript((prev) => {
           // Prevent duplicates by checking if entry already exists
-          const entryText = `[${timestamp}] ${entry.speaker}: ${entry.text}`;
+          const entryText = `[${timestamp}] ${
+            entry?.speakerName || entry.speakerEmail
+          }: ${entry.text}`;
           if (prev.includes(entryText)) {
             return prev;
           }
-          return [...prev, entryText];
+          return [entryText, ...prev]; // Add to beginning for latest first
         });
       }
     };
@@ -166,6 +184,7 @@ export default function MeetingDetailPage() {
 
   useEffect(() => {
     // Jitsi initialization on meeting load
+    // console.log("sdf", meeting, jitsiContainerRef.current);
     if (meeting && jitsiContainerRef.current && !jitsiApiRef.current) {
       const loadJitsi = async () => {
         if (
@@ -202,14 +221,9 @@ export default function MeetingDetailPage() {
       setMeeting(data);
       setIsMeetingStarted(data.status === "ongoing");
 
-      // Load existing transcripts
-      if (data.transcript && data.transcript.length > 0) {
-        const existingTranscripts = data.transcript.map((entry: any) => {
-          const timestamp = format(new Date(entry.timestamp), "HH:mm:ss");
-          return `[${timestamp}] ${entry.speaker}: ${entry.text}`;
-        });
-        setTranscript(existingTranscripts);
-      }
+      // Load initial transcripts with pagination
+      // Removing await because it stops video conferencing.
+      loadTranscripts(1);
     } catch (err: any) {
       setError(err.message || "Failed to load meeting details");
       console.error("Error fetching meeting:", err);
@@ -218,8 +232,62 @@ export default function MeetingDetailPage() {
     }
   };
 
+  const loadTranscripts = async (page: number) => {
+    try {
+      setLoadingTranscripts(true);
+
+      const response = await meetingsService.getMeetingTranscripts(id, page, 1);
+
+      if (!response || !response.data) {
+        console.log("No transcripts found");
+        if (page === 1) {
+          setTranscript([]);
+        }
+        setHasMoreTranscripts(false);
+        return;
+      }
+
+      const formattedTranscripts = response.data.map(
+        (segment: TranscriptSegment) => {
+          const timestamp = format(new Date(segment.timestamp), "HH:mm:ss");
+          return `[${timestamp}] ${segment.speakerName}: ${segment.text}`;
+        }
+      );
+
+      if (page === 1) {
+        // First load - replace all transcripts (newest at top)
+        setTranscript(formattedTranscripts);
+      } else {
+        // Load more - append older transcripts at the end
+        setTranscript((prev) => [...prev, ...formattedTranscripts]);
+      }
+
+      setHasMoreTranscripts(response.pagination?.hasMore || false);
+      setTranscriptPage(page);
+
+      return;
+    } catch (err: any) {
+      console.error("Error loading transcripts:", err);
+      // Don't show error for empty transcripts
+      if (page === 1) {
+        setTranscript([]);
+        setHasMoreTranscripts(false);
+      }
+    } finally {
+      setLoadingTranscripts(false);
+    }
+  };
+
+  const loadMoreTranscripts = () => {
+    if (!loadingTranscripts && hasMoreTranscripts) {
+      loadTranscripts(transcriptPage + 1);
+    }
+  };
+
   const initializeJitsi = () => {
-    if (!meeting || !jitsiContainerRef.current) return;
+    if (!meeting || !jitsiContainerRef.current) {
+      return;
+    }
 
     if (jitsiApiRef.current) {
       jitsiApiRef.current.dispose();
@@ -332,13 +400,17 @@ export default function MeetingDetailPage() {
         }
       }
 
+      // Extract speaker name from user
+      const speakerName =
+        currentUser?.firstName && currentUser?.lastName
+          ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
+          : currentUser?.email?.split("@")[0] || "Unknown";
+
       // Show live typing effect for interim results
       if (interimTranscript) {
         const timestamp = format(new Date(), "HH:mm:ss");
         setLiveTranscript(
-          `[${timestamp}] ${
-            currentUser?.email || "Unknown"
-          }: ${interimTranscript}`
+          `[${timestamp}] ${speakerName}: ${interimTranscript}`
         );
       } else if (!finalTranscript) {
         // Clear live transcript if no interim and no final
@@ -348,13 +420,12 @@ export default function MeetingDetailPage() {
       // Send final transcript and clear live display
       if (finalTranscript) {
         setLiveTranscript(""); // Clear live transcript immediately
-        const timestamp = new Date().toISOString();
 
         socketService.sendTranscriptUpdate(
           id,
           currentUser?.email || "Unknown",
-          finalTranscript.trim(),
-          timestamp
+          speakerName,
+          finalTranscript.trim()
         );
 
         socketService.updateRecordingStatus(
@@ -576,26 +647,15 @@ export default function MeetingDetailPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {!isRecording ? (
-                      <Button
-                        onClick={startRecording}
-                        variant="outline"
-                        disabled={!isMeetingStarted}
-                        title="Start live transcription"
-                      >
-                        <Radio className="h-4 w-4 mr-2" />
-                        Start Recording
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={stopRecording}
-                        className="bg-red-600 hover:bg-red-700"
-                        title="Stop transcription"
-                      >
-                        <Square className="h-4 w-4 mr-2" />
-                        Stop Recording
-                      </Button>
-                    )}
+                    <Button
+                      onClick={isRecording ? stopRecording : startRecording}
+                      variant={isRecording ? "destructive" : `outline`}
+                      disabled={!isMeetingStarted}
+                      title="Start live transcription"
+                    >
+                      <Radio className="h-4 w-4 mr-2" />
+                      Start Recording
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -662,6 +722,8 @@ export default function MeetingDetailPage() {
                     <p className="text-sm text-gray-500 text-center py-8">
                       {isRecording
                         ? "Listening... Start speaking to see transcript"
+                        : loadingTranscripts
+                        ? "Loading transcripts..."
                         : "Start recording to see live transcript"}
                     </p>
                   ) : (
@@ -671,16 +733,34 @@ export default function MeetingDetailPage() {
                           {liveTranscript}
                         </div>
                       )}
-                      {transcript
-                        .map((line, idx) => (
-                          <div
-                            key={idx}
-                            className="text-sm text-gray-700 p-2 bg-gray-50 rounded"
-                          >
-                            {line}
-                          </div>
-                        ))
-                        .reverse()}
+                      {transcript.map((line, idx) => (
+                        <div
+                          key={idx}
+                          className="text-sm text-gray-700 p-2 bg-gray-50 rounded"
+                        >
+                          {line}
+                        </div>
+                      ))}
+
+                      {/* Load More Button */}
+                      {hasMoreTranscripts && (
+                        <Button
+                          onClick={loadMoreTranscripts}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          disabled={loadingTranscripts}
+                        >
+                          {loadingTranscripts ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            "Load More"
+                          )}
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>

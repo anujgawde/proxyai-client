@@ -1,10 +1,9 @@
 "use client";
 import {
-  Meeting,
   MeetingListItem,
   QAEntry,
   Summary,
-  TranscriptEntry,
+  TranscriptData,
 } from "@/types/meetings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import {
@@ -20,22 +19,22 @@ import {
   Send,
   Target,
   User,
-  X,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Input } from "../ui/input";
 
-import { User as FirebaseUser } from "firebase/auth";
 import { socketService } from "@/lib/socket";
+import { User as ProxyUser } from "@/types/user";
+import { meetingsService } from "@/api/meetings";
 
-interface ViewDetailsDialog {
+interface ViewDetailsDialogProps {
   isOpen: boolean;
   meeting: MeetingListItem;
   onClose: () => void;
-  currentUser: FirebaseUser;
+  currentUser: ProxyUser;
 }
 
 export default function ViewDetailsDialog({
@@ -43,7 +42,7 @@ export default function ViewDetailsDialog({
   meeting,
   onClose,
   currentUser,
-}: ViewDetailsDialog) {
+}: ViewDetailsDialogProps) {
   const [activeTab, setActiveTab] = useState<
     "transcripts" | "summaries" | "qa"
   >("transcripts");
@@ -55,7 +54,15 @@ export default function ViewDetailsDialog({
   const qaScrollRef = useRef<HTMLDivElement>(null);
 
   const [summaries, setSummaries] = useState<Summary[]>([]);
-  const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
+  const [transcripts, setTranscripts] = useState<TranscriptData[]>([]);
+  const [loadingTranscripts, setLoadingTranscripts] = useState(false);
+
+  // Pagination state
+  const [transcriptPage, setTranscriptPage] = useState(1);
+  const [hasMoreTranscripts, setHasMoreTranscripts] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const isReloadingRef = useRef(false);
 
   const openChangeHandler = () => {
     onClose();
@@ -68,6 +75,108 @@ export default function ViewDetailsDialog({
       second: "2-digit",
     });
   };
+
+  // Load transcripts from API with pagination
+  const loadTranscripts = async (page: number, append: boolean = false) => {
+    // Prevent concurrent reloads
+    if (isReloadingRef.current) {
+      console.log("Already reloading, skipping...");
+      return;
+    }
+
+    try {
+      isReloadingRef.current = true;
+
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoadingTranscripts(true);
+      }
+
+      const response = await meetingsService.getMeetingTranscripts(
+        meeting.id.toString(),
+        page,
+        1
+      );
+
+      console.log("Transcript API response:", response);
+
+      if (!response || !response.data) {
+        console.log("No response or data");
+        if (!append) {
+          setTranscripts([]);
+        }
+        setHasMoreTranscripts(false);
+        return;
+      }
+
+      const allSegments: TranscriptData[] = response.data;
+      console.log("Loaded segments:", allSegments);
+
+      // Use functional updates to avoid stale state
+      if (append) {
+        setTranscripts((prev) => [...prev, ...allSegments]);
+      } else {
+        setTranscripts(allSegments);
+      }
+
+      setHasMoreTranscripts(response.pagination?.hasMore || false);
+      setTranscriptPage(page);
+    } catch (error) {
+      console.error("Error loading transcripts:", error);
+      if (!append) {
+        setTranscripts([]);
+        setHasMoreTranscripts(false);
+      }
+    } finally {
+      setLoadingTranscripts(false);
+      setLoadingMore(false);
+      isReloadingRef.current = false;
+    }
+  };
+
+  const loadMoreTranscripts = () => {
+    if (!loadingMore && hasMoreTranscripts) {
+      loadTranscripts(transcriptPage + 1, true);
+    }
+  };
+
+  // Initial load of transcripts when dialog opens
+  useEffect(() => {
+    if (isOpen && meeting?.id) {
+      setTranscriptPage(1);
+      loadTranscripts(1, false);
+    }
+  }, [isOpen, meeting?.id]);
+
+  // Listen ONLY for database flushes (remove live transcript listener)
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    const handleTranscriptsFlushed = (data: {
+      meetingId: string;
+      entryId: number;
+      transcripts: TranscriptData[];
+      timeStart: string;
+      timeEnd: string;
+    }) => {
+      if (data.meetingId === meeting.id.toString()) {
+        console.log("Transcripts flushed to database, reloading...", data);
+
+        // Reload from page 1 to get the latest data
+        loadTranscripts(1, false);
+      }
+    };
+
+    socketService.on("transcripts-flushed", handleTranscriptsFlushed);
+
+    return () => {
+      socketService.off("transcripts-flushed", handleTranscriptsFlushed);
+    };
+  }, [meeting?.id]);
 
   const handleQuestionSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -92,13 +201,53 @@ export default function ViewDetailsDialog({
     }
   };
 
+  const reloadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    const handleTranscriptsFlushed = (data: {
+      meetingId: string;
+      entryId: number;
+      transcripts: TranscriptData[];
+      timeStart: string;
+      timeEnd: string;
+    }) => {
+      if (data.meetingId === meeting.id.toString()) {
+        console.log("Transcripts flushed to database", data);
+
+        // Debounce reload to prevent rapid successive calls
+        if (reloadTimeoutRef.current) {
+          clearTimeout(reloadTimeoutRef.current);
+        }
+
+        reloadTimeoutRef.current = setTimeout(() => {
+          console.log("Reloading transcripts after flush...");
+          loadTranscripts(1, false);
+        }, 500); // Wait 500ms before reloading
+      }
+    };
+
+    socketService.on("transcripts-flushed", handleTranscriptsFlushed);
+
+    return () => {
+      if (reloadTimeoutRef.current) {
+        clearTimeout(reloadTimeoutRef.current);
+      }
+      socketService.off("transcripts-flushed", handleTranscriptsFlushed);
+    };
+  }, [meeting?.id]);
+
   return (
     <Dialog open={isOpen} onOpenChange={openChangeHandler}>
       <DialogContent
         className="p-0 gap-0 w-2xl max-h-[80%] h-[80%] flex flex-col"
         style={{ maxWidth: "none" }}
       >
-        <DialogHeader className="flex items-center flex-row px-6 py-4 space-x-2 border-">
+        <DialogHeader className="flex items-center flex-row px-6 py-4 space-x-2 border-b">
           <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
             <Target className="w-5 h-5 text-white" />
           </div>
@@ -107,7 +256,7 @@ export default function ViewDetailsDialog({
             <DialogTitle className="text-xl font-semibold text-slate-900">
               {meeting.title}
             </DialogTitle>
-            <div className="flex items-center space-x-3 ">
+            <div className="flex items-center space-x-3">
               <Badge
                 className={`capitalize ${
                   meeting.status === "ongoing"
@@ -174,7 +323,12 @@ export default function ViewDetailsDialog({
                 ref={transcriptScrollRef}
                 className="flex-1 overflow-y-auto p-6 space-y-3"
               >
-                {!transcripts || transcripts.length === 0 ? (
+                {loadingTranscripts ? (
+                  <div className="text-center py-16">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Loading transcripts...</p>
+                  </div>
+                ) : !transcripts || transcripts.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <MessageCircle className="h-7 w-7 text-gray-500" />
@@ -182,17 +336,21 @@ export default function ViewDetailsDialog({
                     <h3 className="text-lg font-semibold text-slate-900 mb-2">
                       No transcripts available yet
                     </h3>
-                    {meeting.status === "scheduled" && (
+                    {meeting.status === "scheduled" ? (
                       <p className="text-gray-600">
                         Transcripts will appear when the meeting starts
+                      </p>
+                    ) : (
+                      <p className="text-gray-600">
+                        Transcripts will appear here after they are saved
                       </p>
                     )}
                   </div>
                 ) : (
-                  transcripts
-                    ?.map((entry) => (
+                  <>
+                    {transcripts.map((segment, index) => (
                       <Card
-                        key={entry.id}
+                        key={`${segment.timestamp}-${index}`}
                         className="border-l-4 border-l-slate-900 border border-gray-200 bg-white"
                       >
                         <CardContent className="p-4">
@@ -203,7 +361,7 @@ export default function ViewDetailsDialog({
                                   <User className="h-3 w-3 text-white" />
                                 </div>
                               ) : (
-                                <div className="w-6 h-6  rounded-full flex items-center justify-center">
+                                <div className="w-6 h-6 rounded-full flex items-center justify-center">
                                   <img
                                     src={currentUser.photoURL}
                                     alt="User Avatar"
@@ -212,21 +370,42 @@ export default function ViewDetailsDialog({
                                 </div>
                               )}
                               <span className="font-medium text-slate-900">
-                                {entry.speaker}
+                                {segment.speakerName || segment.speakerEmail}
                               </span>
                             </div>
                             <div className="flex items-center text-sm text-gray-500">
                               <Clock className="h-3 w-3 mr-1" />
-                              {formatTime(entry.timestamp.toISOString())}
+                              {formatTime(segment.timestamp)}
                             </div>
                           </div>
                           <p className="text-gray-800 leading-relaxed">
-                            {entry.text}
+                            {segment.text}
                           </p>
                         </CardContent>
                       </Card>
-                    ))
-                    .reverse()
+                    ))}
+
+                    {/* Load More Button */}
+                    {hasMoreTranscripts && (
+                      <div className="flex justify-center pt-4">
+                        <Button
+                          onClick={loadMoreTranscripts}
+                          variant="outline"
+                          size="sm"
+                          disabled={loadingMore}
+                        >
+                          {loadingMore ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            "Load More Transcripts"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -258,7 +437,7 @@ export default function ViewDetailsDialog({
                     ) : null}
                   </div>
                 ) : (
-                  summaries?.map((summary, index) => (
+                  summaries.map((summary, index) => (
                     <Card
                       key={`${summary.timestamp}-${index}`}
                       className="border-l-4 border-l-slate-900 border border-gray-200 bg-white"
@@ -386,7 +565,7 @@ export default function ViewDetailsDialog({
                 )}
               </div>
 
-              <div className="border-t border-gray-200 p-4 ">
+              <div className="border-t border-gray-200 p-4">
                 <div className="flex space-x-2">
                   <Input
                     value={question}

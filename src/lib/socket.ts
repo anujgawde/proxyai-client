@@ -94,15 +94,15 @@ class SocketService {
 
   sendTranscriptUpdate(
     meetingId: string,
-    speaker: string,
-    text: string,
-    timestamp?: string
+    speakerEmail: string,
+    speakerName: string,
+    text: string
   ) {
     this.socket?.emit("transcript-update", {
       meetingId,
-      speaker,
+      speakerEmail,
+      speakerName,
       text,
-      timestamp: timestamp || new Date().toISOString(),
     });
   }
 
@@ -112,6 +112,19 @@ class SocketService {
       this.socket.emit("ask-question", { meetingId, question, userEmail });
     }
   }
+
+  //
+  // onTranscriptsFlushed(callback: (data: any) => void) {
+  //   this.socket?.on("transcripts-flushed", callback);
+  // }
+
+  // offTranscriptsFlushed(callback?: (data: any) => void) {
+  //   if (callback) {
+  //     this.socket?.off("transcripts-flushed", callback);
+  //   } else {
+  //     this.socket?.off("transcripts-flushed");
+  //   }
+  // }
 
   // Event listeners
   on(event: string, callback: (...args: any[]) => void) {
