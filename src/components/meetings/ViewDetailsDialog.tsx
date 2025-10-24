@@ -61,6 +61,9 @@ export default function ViewDetailsDialog({
   const [transcriptPage, setTranscriptPage] = useState(1);
   const [hasMoreTranscripts, setHasMoreTranscripts] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [hasMoreSummaries, setHasMoreSummaries] = useState(false);
+  const [loadingSummaries, setLoadingSummaries] = useState(false);
 
   const isReloadingRef = useRef(false);
 
@@ -175,6 +178,84 @@ export default function ViewDetailsDialog({
 
     return () => {
       socketService.off("transcripts-flushed", handleTranscriptsFlushed);
+    };
+  }, [meeting?.id]);
+
+  const loadSummaries = async (page: number, append: boolean = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoadingSummaries(true);
+      }
+
+      const response = await meetingsService.getMeetingSummaries(
+        meeting.id.toString(),
+        page,
+        10
+      );
+
+      if (!response || !response.data) {
+        if (!append) {
+          setSummaries([]);
+        }
+        setHasMoreSummaries(false);
+        return;
+      }
+
+      if (append) {
+        setSummaries((prev) => [...prev, ...response.data]);
+      } else {
+        setSummaries(response.data);
+      }
+
+      setHasMoreSummaries(response.pagination?.hasMore || false);
+      setSummaryPage(page);
+    } catch (error) {
+      console.error("Error loading summaries:", error);
+      if (!append) {
+        setSummaries([]);
+        setHasMoreSummaries(false);
+      }
+    } finally {
+      setLoadingSummaries(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    if (isOpen && meeting?.id) {
+      loadSummaries(1, false);
+    }
+  }, [isOpen, meeting?.id]);
+
+  // Listen for new summaries
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const socket = socketService.getSocket();
+    console.log(socket);
+    if (!socket) return;
+
+    const handleSummaryCreated = (data: {
+      meetingId: string;
+      id: number;
+      content: string;
+      createdAt: string;
+    }) => {
+      if (data.meetingId === meeting.id.toString()) {
+        console.log("New summary created:", data);
+
+        // Add new summary to the beginning
+        setSummaries((prev) => [data, ...prev]);
+      }
+    };
+
+    socketService.on("summary-created", handleSummaryCreated);
+
+    return () => {
+      socketService.off("summary-created", handleSummaryCreated);
     };
   }, [meeting?.id]);
 
@@ -439,7 +520,7 @@ export default function ViewDetailsDialog({
                 ) : (
                   summaries.map((summary, index) => (
                     <Card
-                      key={`${summary.timestamp}-${index}`}
+                      key={`${summary.createdAt}-${index}`}
                       className="border-l-4 border-l-slate-900 border border-gray-200 bg-white"
                     >
                       <CardHeader className="pb-2">
@@ -450,7 +531,7 @@ export default function ViewDetailsDialog({
                           </CardTitle>
                           <div className="flex items-center text-sm text-gray-500">
                             <Clock className="h-3 w-3 mr-1" />
-                            {formatTime(summary.timestamp)}
+                            {formatTime(summary.createdAt)}
                           </div>
                         </div>
                       </CardHeader>
@@ -461,6 +542,26 @@ export default function ViewDetailsDialog({
                       </CardContent>
                     </Card>
                   ))
+                )}
+
+                {hasMoreSummaries && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      onClick={() => loadSummaries(summaryPage + 1, true)}
+                      variant="outline"
+                      size="sm"
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        "Load More Summaries"
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

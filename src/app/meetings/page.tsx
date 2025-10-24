@@ -44,17 +44,20 @@ export default function MeetingsPage() {
     fetchMeetings();
   }, []);
 
-  // Initialize socket
+  // Initialize socket and set up listeners
   useEffect(() => {
     if (!currentUser?.email) return;
 
+    console.log("Initializing socket for user:", currentUser);
     socketService.initialize(currentUser.email);
-  }, [currentUser?.email]);
 
-  // Socket listeners for real-time updates
-  useEffect(() => {
+    // Wait a brief moment for socket to connect, or set up listeners immediately
     const socket = socketService.getSocket();
-    if (!socket) return;
+
+    if (!socket) {
+      console.error("Socket failed to initialize");
+      return;
+    }
 
     console.log("Setting up socket listeners for meetings page");
 
@@ -81,16 +84,35 @@ export default function MeetingsPage() {
       // Optionally update meeting transcript count or show notification
     };
 
+    const handleSummaryCreated = (data: {
+      meetingId: string;
+      content: string;
+    }) => {
+      console.log("Summary created for meeting:", data);
+
+      // Update the meeting with latest summary
+      setMeetings((prev) =>
+        prev.map((m) =>
+          m.id.toString() === data.meetingId
+            ? { ...m, latestSummary: data.content }
+            : m
+        )
+      );
+    };
+
     socketService.on("meeting-started", handleMeetingStarted);
     socketService.on("meeting-ended", handleMeetingEnded);
     socketService.on("new-transcript", handleNewTranscript);
+    socketService.on("summary-created", handleSummaryCreated);
 
     return () => {
+      console.log("Cleaning up socket listeners");
       socketService.off("meeting-started", handleMeetingStarted);
       socketService.off("meeting-ended", handleMeetingEnded);
       socketService.off("new-transcript", handleNewTranscript);
+      socketService.off("summary-created", handleSummaryCreated);
     };
-  }, []);
+  }, [currentUser?.email]);
 
   const handleJoinMeeting = (meetingId: number) => {
     console.log("Joining meeting:", meetingId);
@@ -98,7 +120,6 @@ export default function MeetingsPage() {
   };
 
   const handleViewDetails = (meeting: MeetingListItem) => {
-    // TODO: Implement view details logic
     setSelectedMeeting(meeting);
   };
 
@@ -125,13 +146,142 @@ export default function MeetingsPage() {
     return `${minutes}m`;
   };
 
-  // const getLatestSummary = (meeting: Meeting) => {
-  //   if (!meeting.summaries || meeting.summaries.length === 0)
-  //     return "No summaries yet...";
-  //   const latest = meeting.summaries[meeting.summaries.length - 1];
-  //   if (!latest) return "No summaries yet...";
-  //   return latest.content.substring(0, 100) + "...";
-  // };
+  // Segregate meetings by status
+  const ongoingMeetings = meetings.filter((m) => m.status === "ongoing");
+  const scheduledMeetings = meetings.filter((m) => m.status === "scheduled");
+  const endedMeetings = meetings.filter((m) => m.status === "ended");
+
+  const renderMeetingCard = (meeting: MeetingListItem) => {
+    const scheduledStart = new Date(meeting.scheduledStart);
+    const scheduledEnd = new Date(meeting.scheduledEnd);
+
+    const scheduledOnParts = meeting.scheduledOn.split("-");
+    const scheduledOn = new Date(
+      parseInt(scheduledOnParts[0]),
+      parseInt(scheduledOnParts[1]) - 1,
+      parseInt(scheduledOnParts[2])
+    );
+
+    return (
+      <Card
+        key={meeting.id}
+        className="border-gray-200 shadow-md w-full flex flex-col"
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-center">
+            <CardTitle className="text-lg font-semibold min-w-0 pr-2">
+              {meeting.title}
+            </CardTitle>
+            <span
+              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                meeting.status === "ongoing"
+                  ? "bg-red-100 text-red-800"
+                  : meeting.status === "scheduled"
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {meeting.status === "ongoing" ? (
+                <>
+                  <Radio className="w-2 h-2 mr-1 animate-pulse" />
+                  Live
+                </>
+              ) : meeting.status === "scheduled" ? (
+                "Scheduled"
+              ) : (
+                "Ended"
+              )}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col">
+          <div className="space-y-3 flex-1">
+            {/* Date and Time */}
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{format(scheduledOn, "MMM d, yyyy")}</span>
+            </div>
+
+            {/* Time Range */}
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>
+                {format(scheduledStart, "h:mm a")} -{" "}
+                {format(scheduledEnd, "h:mm a")}
+              </span>
+            </div>
+
+            {/* Participants Count */}
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <Users className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{meeting.participants.length} participant(s)</span>
+            </div>
+
+            {/* Duration for started/ended meetings */}
+            {meeting.startedAt && (
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Duration: {getDuration(meeting)}</span>
+              </div>
+            )}
+
+            {/* Latest Summary Preview - Fixed Height */}
+            <div className={!meeting?.latestSummary ? `h-12` : "h-24"}>
+              {meeting.latestSummary ? (
+                <div className="bg-green-50 rounded-md p-3 h-full flex flex-col">
+                  <p className="text-xs font-medium text-green-700 mb-1 flex-shrink-0">
+                    Latest Summary:
+                  </p>
+                  <p className="text-sm text-gray-700 overflow-hidden line-clamp-3 flex-1">
+                    {meeting.latestSummary}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-md p-3 h-full flex items-center justify-start">
+                  <p className="text-sm text-gray-500 italic">
+                    {meeting.status === "scheduled"
+                      ? "Meeting not started yet."
+                      : "No summaries found."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 mt-3">
+            {canJoinMeeting(meeting) && (
+              <Button
+                onClick={() => handleJoinMeeting(meeting.id)}
+                className="flex-1"
+                size="sm"
+                variant={
+                  meeting.status === "ongoing" ? "destructive" : "outline"
+                }
+              >
+                {meeting.status === "ongoing" && (
+                  <Radio className="h-3 w-3 mr-1" />
+                )}
+                Join Meeting
+              </Button>
+            )}
+
+            {meeting.status !== "scheduled" && (
+              <Button
+                onClick={() => handleViewDetails(meeting)}
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                Details
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div>
@@ -173,145 +323,45 @@ export default function MeetingsPage() {
             </p>
           </div>
         ) : (
-          <div className="flex items-start w-full space-x-4">
-            {meetings.map((meeting) => {
-              const scheduledStart = new Date(meeting.scheduledStart);
-              const scheduledEnd = new Date(meeting.scheduledEnd);
+          <div className="space-y-8">
+            {/* Ongoing Meetings */}
+            {ongoingMeetings.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Radio className="w-5 h-5 text-red-600 animate-pulse" />
+                  Ongoing Meetings
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {ongoingMeetings.map(renderMeetingCard)}
+                </div>
+              </div>
+            )}
 
-              const scheduledOnParts = meeting.scheduledOn.split("-");
-              const scheduledOn = new Date(
-                parseInt(scheduledOnParts[0]),
-                parseInt(scheduledOnParts[1]) - 1,
-                parseInt(scheduledOnParts[2])
-              );
+            {/* Scheduled Meetings */}
+            {scheduledMeetings.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  Scheduled Meetings
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {scheduledMeetings.map(renderMeetingCard)}
+                </div>
+              </div>
+            )}
 
-              return (
-                <Card
-                  key={meeting.id}
-                  className="border-gray-200 shadow-md w-1/4 gap-0"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center">
-                      <CardTitle className="text-lg font-semibold min-w-0 pr-2">
-                        {meeting.title}
-                      </CardTitle>
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                          meeting.status === "ongoing"
-                            ? "bg-red-100 text-red-800"
-                            : meeting.status === "scheduled"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {meeting.status === "ongoing" ? (
-                          <>
-                            <Radio className="w-2 h-2 mr-1 animate-pulse" />
-                            Live
-                          </>
-                        ) : meeting.status === "scheduled" ? (
-                          "Scheduled"
-                        ) : (
-                          "Ended"
-                        )}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {/* Date and Time */}
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>{format(scheduledOn, "MMM d, yyyy")}</span>
-                      </div>
-
-                      {/* Time Range */}
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>
-                          {format(scheduledStart, "h:mm a")} -{" "}
-                          {format(scheduledEnd, "h:mm a")}
-                        </span>
-                      </div>
-
-                      {/* Participants Count */}
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Users className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>
-                          {meeting.participants.length} participant(s)
-                        </span>
-                      </div>
-
-                      {/* Duration for started/ended meetings */}
-                      {meeting.startedAt && (
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>Duration: {getDuration(meeting)}</span>
-                        </div>
-                      )}
-
-                      <div className="space-y-3 mb-4">
-                        {/* Latest Summary Preview */}
-                        {meeting.latestSummary && (
-                          <div className="bg-green-50 rounded-md p-3">
-                            <p className="text-xs font-medium text-green-700 mb-1">
-                              Latest Summary:
-                            </p>
-                            <p className="text-sm text-gray-700">
-                              {meeting.latestSummary}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* No content message */}
-                        {!meeting.latestSummary && (
-                          <div className="bg-gray-50 rounded-md p-3">
-                            <p className="text-sm text-gray-500 italic">
-                              {meeting.status === "scheduled"
-                                ? "Meeting not started yet"
-                                : "No summaries found."}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        {canJoinMeeting(meeting) && (
-                          <Button
-                            onClick={() => handleJoinMeeting(meeting.id)}
-                            className={`flex-1 `}
-                            size="sm"
-                            variant={
-                              meeting.status === "ongoing"
-                                ? "destructive"
-                                : `outline`
-                            }
-                          >
-                            {meeting.status === "ongoing" && (
-                              <Radio className="h-3 w-3 mr-1" />
-                            )}
-                            Join Meeting
-                          </Button>
-                        )}
-
-                        {meeting.status !== "scheduled" && (
-                          <Button
-                            onClick={() => handleViewDetails(meeting)}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-8"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Details
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {/* Ended Meetings */}
+            {endedMeetings.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-gray-600" />
+                  Past Meetings
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {endedMeetings.map(renderMeetingCard)}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

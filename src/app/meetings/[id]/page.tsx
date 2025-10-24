@@ -654,7 +654,7 @@ export default function MeetingDetailPage() {
                       title="Start live transcription"
                     >
                       <Radio className="h-4 w-4 mr-2" />
-                      Start Recording
+                      {isRecording ? "Stop Recording" : "Start Recording"}
                     </Button>
                   </div>
                 </div>

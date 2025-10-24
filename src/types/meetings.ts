@@ -53,10 +53,9 @@ export interface TranscriptEntry {
 // Summary:
 export interface Summary {
   id: number;
-  timestamp: string;
   content: string;
   meetingId: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 // Todo: Verify usage. Not finalized.

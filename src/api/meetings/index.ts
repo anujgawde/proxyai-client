@@ -1,4 +1,4 @@
-import { CreateMeetingDto, UpdateMeetingDto } from "@/types/meetings";
+import { CreateMeetingDto, Summary } from "@/types/meetings";
 import { api } from "../api";
 
 class MeetingsService {
@@ -25,6 +25,28 @@ class MeetingsService {
       `/meetings/${id}/transcripts?page=${page}&limit=${limit}`
     );
 
+    return response.data;
+  }
+
+  // api/meetings.ts - Add these methods
+
+  async getMeetingSummaries(
+    id: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    data: Summary[];
+    pagination: {
+      page: number;
+      limit: number;
+      totalSummaries: number;
+      totalPages: number;
+      hasMore: boolean;
+    };
+  }> {
+    const response = await api.get(
+      `/meetings/${id}/summaries?page=${page}&limit=${limit}`
+    );
     return response.data;
   }
 
