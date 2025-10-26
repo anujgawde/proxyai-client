@@ -29,6 +29,7 @@ import { Input } from "../ui/input";
 import { socketService } from "@/lib/socket";
 import { User as ProxyUser } from "@/types/user";
 import { meetingsService } from "@/api/meetings";
+import { v4 as uuidv4 } from "uuid";
 
 interface ViewDetailsDialogProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export default function ViewDetailsDialog({
     "transcripts" | "summaries" | "qa"
   >("transcripts");
   const [question, setQuestion] = useState("");
-  const [qaHistory, setQAHistory] = useState<QAEntry[]>([]);
+  const [qaHistory, setQAHistory] = useState<Partial<QAEntry>[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
   const summaryScrollRef = useRef<HTMLDivElement>(null);
@@ -57,13 +58,16 @@ export default function ViewDetailsDialog({
   const [transcripts, setTranscripts] = useState<TranscriptData[]>([]);
   const [loadingTranscripts, setLoadingTranscripts] = useState(false);
 
-  // Pagination state
   const [transcriptPage, setTranscriptPage] = useState(1);
   const [hasMoreTranscripts, setHasMoreTranscripts] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [summaryPage, setSummaryPage] = useState(1);
   const [hasMoreSummaries, setHasMoreSummaries] = useState(false);
   const [loadingSummaries, setLoadingSummaries] = useState(false);
+
+  const [qaPage, setQAPage] = useState(1);
+  const [hasMoreQA, setHasMoreQA] = useState(false);
+  const [loadingQA, setLoadingQA] = useState(false);
 
   const isReloadingRef = useRef(false);
 
@@ -79,9 +83,7 @@ export default function ViewDetailsDialog({
     });
   };
 
-  // Load transcripts from API with pagination
   const loadTranscripts = async (page: number, append: boolean = false) => {
-    // Prevent concurrent reloads
     if (isReloadingRef.current) {
       console.log("Already reloading, skipping...");
       return;
@@ -102,10 +104,7 @@ export default function ViewDetailsDialog({
         1
       );
 
-      console.log("Transcript API response:", response);
-
       if (!response || !response.data) {
-        console.log("No response or data");
         if (!append) {
           setTranscripts([]);
         }
@@ -114,9 +113,7 @@ export default function ViewDetailsDialog({
       }
 
       const allSegments: TranscriptData[] = response.data;
-      console.log("Loaded segments:", allSegments);
 
-      // Use functional updates to avoid stale state
       if (append) {
         setTranscripts((prev) => [...prev, ...allSegments]);
       } else {
@@ -144,7 +141,6 @@ export default function ViewDetailsDialog({
     }
   };
 
-  // Initial load of transcripts when dialog opens
   useEffect(() => {
     if (isOpen && meeting?.id) {
       setTranscriptPage(1);
@@ -152,7 +148,6 @@ export default function ViewDetailsDialog({
     }
   }, [isOpen, meeting?.id]);
 
-  // Listen ONLY for database flushes (remove live transcript listener)
   useEffect(() => {
     if (!meeting?.id) return;
 
@@ -168,8 +163,6 @@ export default function ViewDetailsDialog({
     }) => {
       if (data.meetingId === meeting.id.toString()) {
         console.log("Transcripts flushed to database, reloading...", data);
-
-        // Reload from page 1 to get the latest data
         loadTranscripts(1, false);
       }
     };
@@ -223,19 +216,16 @@ export default function ViewDetailsDialog({
     }
   };
 
-  // Initial load
   useEffect(() => {
     if (isOpen && meeting?.id) {
       loadSummaries(1, false);
     }
   }, [isOpen, meeting?.id]);
 
-  // Listen for new summaries
   useEffect(() => {
     if (!meeting?.id) return;
 
     const socket = socketService.getSocket();
-    console.log(socket);
     if (!socket) return;
 
     const handleSummaryCreated = (data: {
@@ -246,8 +236,6 @@ export default function ViewDetailsDialog({
     }) => {
       if (data.meetingId === meeting.id.toString()) {
         console.log("New summary created:", data);
-
-        // Add new summary to the beginning
         setSummaries((prev) => [data, ...prev]);
       }
     };
@@ -259,16 +247,192 @@ export default function ViewDetailsDialog({
     };
   }, [meeting?.id]);
 
+  const loadQAHistory = async (page: number, append: boolean = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoadingQA(true);
+      }
+
+      const response = await meetingsService.getQAHistory(
+        meeting.id.toString(),
+        page,
+        10
+      );
+
+      if (!response || !response.data) {
+        if (!append) {
+          setQAHistory([]);
+        }
+        setHasMoreQA(false);
+        return;
+      }
+
+      if (append) {
+        setQAHistory((prev) => [...prev, ...response.data]);
+      } else {
+        setQAHistory(response.data);
+      }
+
+      setHasMoreQA(response.pagination?.hasMore || false);
+      setQAPage(page);
+    } catch (error) {
+      console.error("Error loading QA history:", error);
+      if (!append) {
+        setQAHistory([]);
+        setHasMoreQA(false);
+      }
+    } finally {
+      setLoadingQA(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && meeting?.id) {
+      loadQAHistory(1, false);
+    }
+  }, [isOpen, meeting?.id]);
+
+  // Q&A Socket Listeners
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    const handleQuestionStatus = (data: {
+      meetingId: string;
+      question: string;
+      userId: string;
+      speakerName: string;
+      speakerEmail: string;
+      status: string;
+      timestamp: string;
+      tempId: string;
+    }) => {
+      if (data.meetingId === meeting.id.toString()) {
+        console.log("Question status:", data);
+
+        const newQAEntry: Partial<QAEntry> = {
+          meetingId: data.meetingId,
+          question: data.question,
+          userId: data.userId,
+          speakerName: data.speakerName,
+          speakerEmail: data.speakerEmail,
+          status: "asking",
+          timestamp: data.timestamp,
+          id: data.tempId,
+        };
+
+        // Append new question to the end of the list
+        setQAHistory((prev) => [...prev, newQAEntry]);
+        setIsSubmitting(false);
+      }
+    };
+
+    const handleQuestionAnswered = (data: {
+      id: number;
+      meetingId: string;
+      question: string;
+      userId: string;
+      speakerName: string;
+      speakerEmail: string;
+      status: string;
+      timestamp: string;
+      answer: string;
+      sources: string[];
+      tempId: string;
+    }) => {
+      if (data.meetingId === meeting.id.toString()) {
+        console.log("Question answered:", data);
+
+        setQAHistory((prev) =>
+          prev.map((qa) =>
+            qa.id === data.tempId || qa.id === data.id
+              ? {
+                  ...qa,
+                  answer: data.answer,
+                  sources: data.sources,
+                  status: "answered" as const,
+                }
+              : qa
+          )
+        );
+      }
+    };
+
+    const handleQuestionError = (data: {
+      meetingId: string;
+      question: string;
+      userId: string;
+      speakerName: string;
+      speakerEmail: string;
+      status: string;
+      timestamp: string;
+      error: string;
+      sources: string[];
+    }) => {
+      if (data.meetingId === meeting.id.toString()) {
+        console.log("Question error:", data);
+
+        setQAHistory((prev) => {
+          const lastQuestion = prev[prev.length - 1];
+          if (lastQuestion && lastQuestion.status === "asking") {
+            return prev.map((qa, index) =>
+              index === prev.length - 1
+                ? {
+                    ...qa,
+                    answer: data.error,
+                    status: "error" as const,
+                  }
+                : qa
+            );
+          }
+          return prev;
+        });
+
+        setIsSubmitting(false);
+      }
+    };
+
+    socketService.on("question-status", handleQuestionStatus);
+    socketService.on("question-answered", handleQuestionAnswered);
+    socketService.on("question-error", handleQuestionError);
+
+    return () => {
+      socketService.off("question-status", handleQuestionStatus);
+      socketService.off("question-answered", handleQuestionAnswered);
+      socketService.off("question-error", handleQuestionError);
+    };
+  }, [meeting?.id]);
+
+  // Auto-scroll to bottom when new Q&A is added
+  useEffect(() => {
+    if (activeTab === "qa" && qaScrollRef.current) {
+      qaScrollRef.current.scrollTop = qaScrollRef.current.scrollHeight;
+    }
+  }, [qaHistory, activeTab]);
+
   const handleQuestionSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!question.trim() || isSubmitting || !currentUser?.email) return;
 
     const questionText = question.trim();
+    const tempId = uuidv4();
     setQuestion("");
     setIsSubmitting(true);
 
     try {
-      socketService.askQuestion(meeting.id, questionText, currentUser.email);
+      socketService.askQuestion(
+        tempId as any,
+        meeting.id,
+        questionText,
+        currentUser.firebaseUid,
+        `${currentUser?.firstName} ${currentUser?.lastName}`,
+        currentUser.email
+      );
     } catch (error) {
       console.error("Error asking question:", error);
       setIsSubmitting(false);
@@ -281,46 +445,6 @@ export default function ViewDetailsDialog({
       handleQuestionSubmit();
     }
   };
-
-  const reloadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (!meeting?.id) return;
-
-    const socket = socketService.getSocket();
-    if (!socket) return;
-
-    const handleTranscriptsFlushed = (data: {
-      meetingId: string;
-      entryId: number;
-      transcripts: TranscriptData[];
-      timeStart: string;
-      timeEnd: string;
-    }) => {
-      if (data.meetingId === meeting.id.toString()) {
-        console.log("Transcripts flushed to database", data);
-
-        // Debounce reload to prevent rapid successive calls
-        if (reloadTimeoutRef.current) {
-          clearTimeout(reloadTimeoutRef.current);
-        }
-
-        reloadTimeoutRef.current = setTimeout(() => {
-          console.log("Reloading transcripts after flush...");
-          loadTranscripts(1, false);
-        }, 500); // Wait 500ms before reloading
-      }
-    };
-
-    socketService.on("transcripts-flushed", handleTranscriptsFlushed);
-
-    return () => {
-      if (reloadTimeoutRef.current) {
-        clearTimeout(reloadTimeoutRef.current);
-      }
-      socketService.off("transcripts-flushed", handleTranscriptsFlushed);
-    };
-  }, [meeting?.id]);
 
   return (
     <Dialog open={isOpen} onOpenChange={openChangeHandler}>
@@ -466,7 +590,6 @@ export default function ViewDetailsDialog({
                       </Card>
                     ))}
 
-                    {/* Load More Button */}
                     {hasMoreTranscripts && (
                       <div className="flex justify-center pt-4">
                         <Button
@@ -587,19 +710,19 @@ export default function ViewDetailsDialog({
                     </p>
                   </div>
                 ) : (
-                  qaHistory.map((qa) => (
-                    <div key={qa.id} className="space-y-3">
+                  qaHistory.map((qa, idx) => (
+                    <div key={idx} className="space-y-3">
                       <Card className="border-l-4 border-l-blue-500 border border-gray-200 bg-white">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-medium text-slate-900 flex items-center">
                               <User className="w-4 h-4 mr-2" />
-                              {qa.userEmail === currentUser?.email
+                              {qa.userId === currentUser?.firebaseUid
                                 ? "You"
-                                : qa.userEmail}
+                                : qa.speakerName}
                             </span>
                             <span className="text-sm text-gray-500">
-                              {formatTime(qa.timestamp)}
+                              {formatTime(qa.timestamp!)}
                             </span>
                           </div>
                           <p className="text-gray-800 leading-relaxed">
@@ -700,3 +823,105 @@ export default function ViewDetailsDialog({
     </Dialog>
   );
 }
+
+// {activeTab === "qa" && (
+//   <div className="h-full flex flex-col">
+//     <div
+//       ref={qaScrollRef}
+//       className="flex-1 overflow-y-auto p-6 space-y-4"
+//     >
+//       {qaHistory.length === 0 ? (
+//         <div className="text-center py-16">
+//           <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+//             <Brain className="h-7 w-7 text-gray-500" />
+//           </div>
+//           <h3 className="text-lg font-semibold text-slate-900 mb-2">
+//             No questions asked yet
+//           </h3>
+//           <p className="text-gray-600">
+//             Ask questions about the meeting content below and get
+//             AI-powered answers
+//           </p>
+//         </div>
+//       ) : (
+//         qaHistory.map((qa, idx) => (
+//           <div key={idx} className="space-y-3">
+//             <Card className="border-l-4 border-l-blue-500 border border-gray-200 bg-white">
+//               <CardContent className="p-4">
+//                 <div className="flex items-center justify-between mb-2">
+//                   <span className="font-medium text-slate-900 flex items-center">
+//                     <User className="w-4 h-4 mr-2" />
+//                     {qa.userId === currentUser?.firebaseUid
+//                       ? "You"
+//                       : qa.speakerName}
+//                   </span>
+//                   <span className="text-sm text-gray-500">
+//                     {formatTime(qa.timestamp!)}
+//                   </span>
+//                 </div>
+//                 <p className="text-gray-800 leading-relaxed">
+//                   {qa.question}
+//                 </p>
+//               </CardContent>
+//             </Card>
+
+//             <Card className="border-l-4 border-l-green-500 ml-6 border border-gray-200 bg-white">
+//               <CardContent className="p-4">
+//                 <div className="flex items-center mb-2">
+//                   <span className="font-medium text-slate-900 flex items-center">
+//                     {qa.status === "asking" ? (
+//                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+//                     ) : qa.status === "error" ? (
+//                       <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
+//                     ) : (
+//                       <Bot className="w-4 h-4 mr-2 text-green-600" />
+//                     )}
+//                     AI Assistant
+//                     {qa.status === "answered" && (
+//                       <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
+//                     )}
+//                   </span>
+//                 </div>
+
+//                 {qa.status === "asking" ? (
+//                   <div className="flex items-center space-x-2 text-gray-600">
+//                     <span>Analyzing meeting content...</span>
+//                   </div>
+//                 ) : qa.status === "error" ? (
+//                   <p className="text-red-600 leading-relaxed">
+//                     {qa.answer}
+//                   </p>
+//                 ) : (
+//                   <div className="space-y-3">
+//                     <p className="text-gray-800 leading-relaxed">
+//                       {qa.answer}
+//                     </p>
+//                     {qa.sources && qa.sources.length > 0 && (
+//                       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+//                         <p className="text-xs font-medium text-gray-900 mb-2 flex items-center gap-1">
+//                           <Search className="w-3 h-3" />
+//                           Sources from transcript:
+//                         </p>
+//                         <div className="space-y-1">
+//                           {qa.sources.map((source, idx) => (
+//                             <p
+//                               key={idx}
+//                               className="text-xs text-gray-600 leading-relaxed"
+//                             >
+//                               {source}
+//                             </p>
+//                           ))}
+//                         </div>
+//                       </div>
+//                     )}
+//                   </div>
+//                 )}
+//               </CardContent>
+//             </Card>
+//           </div>
+//         ))
+//       )}
+//     </div>
+
+//   </div>
+// )}

@@ -1,4 +1,4 @@
-import { CreateMeetingDto, Summary } from "@/types/meetings";
+import { CreateMeetingDto, QAEntry, Summary } from "@/types/meetings";
 import { api } from "../api";
 
 class MeetingsService {
@@ -46,6 +46,26 @@ class MeetingsService {
   }> {
     const response = await api.get(
       `/meetings/${id}/summaries?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  }
+
+  async getQAHistory(
+    id: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    data: QAEntry[];
+    pagination: {
+      page: number;
+      limit: number;
+      totalQA: number;
+      totalPages: number;
+      hasMore: boolean;
+    };
+  }> {
+    const response = await api.get(
+      `/meetings/${id}/qa-history?page=${page}&limit=${limit}`
     );
     return response.data;
   }

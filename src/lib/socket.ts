@@ -106,10 +106,24 @@ class SocketService {
     });
   }
 
-  askQuestion(meetingId: number, question: string, userEmail: string) {
+  askQuestion(
+    tempId: string,
+    meetingId: number,
+    question: string,
+    userId: string,
+    speakerName: string,
+    speakerEmail: string
+  ) {
     if (this.socket) {
       console.log(`Asking question in meeting ${meetingId}: ${question}`);
-      this.socket.emit("ask-question", { meetingId, question, userEmail });
+      this.socket.emit("ask-question", {
+        tempId,
+        meetingId,
+        question,
+        userId,
+        speakerName,
+        speakerEmail,
+      });
     }
   }
 

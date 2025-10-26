@@ -60,15 +60,20 @@ export interface Summary {
 
 // Todo: Verify usage. Not finalized.
 export interface QAEntry {
-  id: string;
+  // Temp Fix: Since there is no id on QAEntry when its status is 'question-status' because entry isn't stored in db until then.
+  id: number | string;
+  userId: string;
+  meetingId: string;
+  speakerName: string;
+  speakerEmail: string;
+
   question: string;
   answer: string;
+
   timestamp: string;
-  meetingId: string;
-  userId: string;
-  userEmail?: string;
+
   status?: "asking" | "answered" | "error";
-  sources?: any[];
+  sources?: string[];
 }
 
 // Data Transfer Objects:
