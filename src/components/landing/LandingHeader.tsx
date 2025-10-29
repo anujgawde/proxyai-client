@@ -35,7 +35,7 @@ export default function LandingHeader() {
             Pricing
           </a>
           <a
-            href="#demo"
+            href="/demo"
             className="text-gray-600 hover:text-gray-900 transition-colors"
           >
             Demo

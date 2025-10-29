@@ -42,7 +42,8 @@ export default function AuthForm() {
   const router = useRouter();
 
   // Redirect if already authenticated
-  useAuthRedirect("/meetings");
+  // Temp: Pushing all users to demo until app roll-out
+  useAuthRedirect("/demo");
 
   const validateAuthForm = () => {
     const newErrors = {

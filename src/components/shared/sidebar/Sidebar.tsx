@@ -6,8 +6,6 @@ import SideNavigationTab from "./SideNavigationTab";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isHidden, setIsHidden] = useState(false);
-
   const sideNavigationTabs = [
     {
       label: "Dashboard",
@@ -35,11 +33,6 @@ export default function Sidebar() {
     },
   ];
 
-  useEffect(() => {
-    const hiddenValue = pathname.includes("/auth");
-    setIsHidden(hiddenValue);
-  }, [pathname]);
-
   const topTabs = sideNavigationTabs.filter((tab) => tab.placement === "top");
   const bottomTabs = sideNavigationTabs.filter(
     (tab) => tab.placement === "bottom"
@@ -47,9 +40,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`bg-white  px-3 flex-col items-center border-r border-gray-200 py-4 md:flex ${
-        isHidden ? "hidden" : "flex"
-      }`}
+      className={`bg-white  px-3 flex-col items-center border-r border-gray-200 py-4 md:flex flex`}
     >
       {/* Top Tabs */}
       <div className="space-y-4">

@@ -47,7 +47,7 @@ export default function HomePage() {
               Get Early Access
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <a href="#demo">
+            <a href="/demo">
               <Button
                 size="lg"
                 variant="outline"
@@ -223,7 +223,7 @@ export default function HomePage() {
       </section>
 
       {/* Demo Section */}
-      <section id="demo" className="py-20 px-4 bg-white">
+      {/* <section id="demo" className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="text-4xl font-black mb-6 text-balance text-slate-900">
             Your Meeting Command Center
@@ -247,7 +247,7 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Testimonials Section */}
       <section className="py-20 px-4 bg-gray-50">

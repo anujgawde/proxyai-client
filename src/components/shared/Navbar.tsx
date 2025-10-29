@@ -32,9 +32,9 @@ export default function Navbar() {
 
       <div className="items-center space-x-2 flex">
         <div className="flex space-x-2 items-center">
-          <Button className="p-0" disabled variant={"ghost"}>
+          {/* <Button className="p-0" disabled variant={"ghost"}>
             <Bell />
-          </Button>
+          </Button> */}
         </div>
       </div>
     </div>
