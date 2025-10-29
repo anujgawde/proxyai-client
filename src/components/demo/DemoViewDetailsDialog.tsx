@@ -24,8 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-// import { QA_RESPONSES } from "@/lib/demo-data";
-import { get } from "@vercel/edge-config";
+import { QA_RESPONSES } from "@/lib/demo-data";
 
 interface DemoMeeting {
   id: number;
@@ -82,11 +81,6 @@ const KEYWORD_MAP: Record<string, string[]> = {
   quantum: ["quantum", "qpu", "feasibility"],
   budget: ["budget", "cost", "money", "price", "dollar"],
 };
-
-const QA_RESPONSES: Record<
-  number,
-  Record<string, { answer: string; sources: string[] }>
-> = (await get("QA_RESPONSES")) || [];
 
 const getQAResponse = (
   question: string,

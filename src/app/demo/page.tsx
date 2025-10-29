@@ -4,13 +4,12 @@ import { Calendar, Users, Clock, Eye, Radio, Play } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DemoViewDetailsDialog from "../../components/demo/DemoViewDetailsDialog";
-// import {
-//   MEETING_TRANSCRIPTS,
-//   MEETING_SUMMARIES,
-//   MEETING_CONFIGS,
-// } from "../../lib/demo-data";
+import {
+  MEETING_TRANSCRIPTS,
+  MEETING_SUMMARIES,
+  MEETING_CONFIGS,
+} from "../../lib/demo-data";
 import DemoGuideDialog from "@/components/demo/DemoGuideDialog";
-import { get } from "@vercel/edge-config";
 
 interface DemoMeeting {
   id: number;
@@ -44,14 +43,6 @@ export interface MeetingConfig {
   title: string;
   participants: string[];
 }
-
-const MEETING_TRANSCRIPTS: Record<
-  number,
-  Array<{ speakerName: string; speakerEmail: string; text: string }>
-> = (await get("MEETING_TRANSCRIPTS")) || [];
-const MEETING_SUMMARIES: Record<number, string[]> =
-  (await get("MEETING_SUMMARIES")) || [];
-const MEETING_CONFIGS: MeetingConfig[] = (await get("MEETING_CONFIGS")) || [];
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
