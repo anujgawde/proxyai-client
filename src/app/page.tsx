@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,18 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowRight,
-  MessageSquare,
-  Brain,
-  Clock,
-  Bell,
-  Users,
-  Star,
-  Check,
-  Target,
-} from "lucide-react";
+import { MessageSquare, Brain, Clock, Bell, Users, Target } from "lucide-react";
 import LandingHeader from "@/components/landing/LandingHeader";
+import RequestAccessDialog from "@/components/shared/RequestAccessDialog";
 
 export default function HomePage() {
   return (
@@ -40,13 +32,7 @@ export default function HomePage() {
             miss a beat across multiple meetings.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-slate-900 hover:bg-slate-800 text-white text-lg px-8"
-            >
-              Get Early Access
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
+            <RequestAccessDialog />
             <a href="/demo">
               <Button
                 size="lg"
@@ -250,7 +236,7 @@ export default function HomePage() {
       </section> */}
 
       {/* Testimonials Section */}
-      <section className="py-20 px-4 bg-gray-50">
+      {/* <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black mb-4 text-balance text-slate-900">
@@ -317,10 +303,9 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 bg-white">
+      {/* <section id="pricing" className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black mb-4 text-balance text-slate-900">
@@ -332,7 +317,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Free */}
+            Free
             <Card className="border-2 hover:border-gray-300 transition-colors">
               <CardHeader>
                 <CardTitle className="text-xl">Free</CardTitle>
@@ -367,8 +352,7 @@ export default function HomePage() {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Pro */}
+            Pro
             <Card className="border-2 border-slate-900 relative hover:border-slate-700 transition-colors">
               <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-slate-900">
                 Most Popular
@@ -404,8 +388,7 @@ export default function HomePage() {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Enterprise */}
+            Enterprise
             <Card className="border-2 hover:border-gray-300 transition-colors">
               <CardHeader>
                 <CardTitle className="text-xl">Enterprise</CardTitle>
@@ -435,7 +418,7 @@ export default function HomePage() {
             </Card>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="border-t bg-gray-50 py-12 px-4 text-center text-gray-600">

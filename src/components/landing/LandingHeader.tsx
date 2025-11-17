@@ -21,7 +21,7 @@ export default function LandingHeader() {
           <span className="text-xl font-bold text-slate-900">ProxyAI</span>
         </div>
 
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center space-x-4">
           <a
             href="#features"
             className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -48,12 +48,7 @@ export default function LandingHeader() {
           >
             Sign In
           </Button>
-          <Button
-            size="sm"
-            className="bg-slate-900 hover:bg-slate-800 text-white"
-          >
-            Get Early Access
-          </Button>
+          {/* <RequestAccessDialog triggerSize="sm" /> */}
         </nav>
       </div>
     </header>
