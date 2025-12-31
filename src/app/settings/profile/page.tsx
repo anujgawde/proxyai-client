@@ -10,7 +10,7 @@ export default function SettingsProfilePage() {
   const [user, setUser] = useState(null);
 
   const getUserHandler = async () => {
-    const response = await usersService.getMyProfile();
+    const response = await usersService.getUserProfile();
     setUser(response);
   };
 

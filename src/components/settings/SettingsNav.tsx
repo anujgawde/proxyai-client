@@ -1,17 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Todo: Make these links and create nested routes inside settings folder
-const navItems = [{ id: "profile", label: "Profile", icon: User }];
+import { usePathname, useRouter } from "next/navigation";
 
 export function SettingsNav() {
-  const [activeItem, setActiveItem] = useState("profile");
+  const pathname = usePathname();
+  const router = useRouter();
+  const navItems = [
+    {
+      id: "profile",
+      label: "Profile",
+      icon: User,
+      isTabActive: pathname.includes("/profile"),
+    },
+    {
+      id: "providers",
+      label: "Providers",
+      icon: Video,
+      isTabActive: pathname.includes("/providers"),
+    },
+  ];
+
   const { logout } = useAuth();
+
   const logoutHandler = async () => {
     await logout();
     window.location.reload();
@@ -24,10 +38,12 @@ export function SettingsNav() {
         return (
           <button
             key={item.id}
-            onClick={() => setActiveItem(item.id)}
+            onClick={() => {
+              router.push(`/settings/${item.id}`);
+            }}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors font-normal cursor-pointer",
-              activeItem === item.id
+              item.isTabActive
                 ? "bg-neutral-100 text-neutral-900 font-medium"
                 : "text-neutral-700 hover:bg-neutral-100"
             )}

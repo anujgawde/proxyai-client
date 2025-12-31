@@ -43,7 +43,7 @@ export default function AuthForm() {
 
   // Redirect if already authenticated
   // Temp: Pushing all users to demo until app roll-out
-  useAuthRedirect("/demo");
+  useAuthRedirect("/meetings");
 
   const validateAuthForm = () => {
     const newErrors = {
@@ -175,7 +175,7 @@ export default function AuthForm() {
             : "Sign in to your ProxyAI account"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-3">
         {resetEmailSent ? (
           <div className="space-y-4">
             <div className="p-4 rounded-md bg-green-50 border border-green-200">
@@ -378,7 +378,7 @@ export default function AuthForm() {
               {/* Submit Button */}
               <Button
                 type="button"
-                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white text-base"
+                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white text-base cursor-pointer"
                 disabled={loading || googleLoading}
                 onClick={handleEmailAuth}
               >
@@ -416,7 +416,7 @@ export default function AuthForm() {
                     <button
                       type="button"
                       onClick={toggleAuthMode}
-                      className="ml-1 font-medium text-slate-900 hover:text-slate-700 underline"
+                      className="ml-1 font-medium text-slate-900 hover:text-slate-700 underline cursor-pointer"
                       disabled={loading || googleLoading}
                     >
                       {isSignUp ? "Sign in" : "Sign up"}
@@ -429,7 +429,7 @@ export default function AuthForm() {
                   <div className="text-center">
                     <button
                       type="button"
-                      className="text-sm font-medium text-slate-900 hover:text-slate-700 underline"
+                      className="text-sm font-medium text-slate-900 hover:text-slate-700 underline cursor-pointer"
                       disabled={loading || googleLoading}
                       onClick={() => setShowForgotPassword(true)}
                     >

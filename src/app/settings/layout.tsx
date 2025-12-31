@@ -21,11 +21,7 @@ export default function SettingsPage({
 
           <Separator orientation="vertical" className="h-auto" />
 
-          <main className="flex-1">
-            {/* <ProfileSettings /> */}
-
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
         </div>
       </div>
     </div>

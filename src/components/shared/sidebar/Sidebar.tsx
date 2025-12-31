@@ -1,6 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, Settings } from "lucide-react";
+import { LayoutDashboard, Calendar, Settings, Video } from "lucide-react";
 import { useEffect, useState } from "react";
 import SideNavigationTab from "./SideNavigationTab";
 
@@ -18,7 +18,7 @@ export default function Sidebar() {
     {
       label: "Meetings",
       navigateTo: "/meetings",
-      icon: <Calendar strokeWidth={1} />,
+      icon: <Video strokeWidth={1} />,
       isTabActive: pathname.includes("/meetings"),
       isDisabled: false,
       placement: "top",

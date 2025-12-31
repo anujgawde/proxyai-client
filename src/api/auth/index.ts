@@ -22,30 +22,6 @@ class AuthService {
     }
   }
 
-  // No usage yet:
-
-  // Verify current session
-  async verifySession() {
-    try {
-      const response = await api.get("/auth/verify");
-      return response.data;
-    } catch (error) {
-      console.error("Session verification failed:", error);
-      throw error;
-    }
-  }
-
-  // Refresh user data
-  async refreshUserData() {
-    try {
-      const response = await api.post("/auth/refresh");
-      return response.data;
-    } catch (error) {
-      console.error("Refresh failed:", error);
-      throw error;
-    }
-  }
-
   async getUserProfile() {
     try {
       const response = await api.get("/users/me");

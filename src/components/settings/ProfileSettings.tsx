@@ -23,7 +23,7 @@ export function ProfileSettings({ user }: { user: User }) {
     e.preventDefault();
 
     setIsUpdatingProfile(true);
-    await usersService.updateUserProfile(user.firebaseUid, userData);
+    await usersService.updateUserProfile(userData);
     setIsUpdatingProfile(false);
   };
 

@@ -10,10 +10,9 @@ export function useAuthRedirect(redirectTo: string = "/meetings") {
   const router = useRouter();
 
   useEffect(() => {
-    // Temp: Pushing all users to demo until app roll-out
-    // if (!loading && currentUser) {
-    router.push(redirectTo);
-    // }
+    if (!loading && currentUser) {
+      router.push(redirectTo);
+    }
   }, [currentUser, loading, router, redirectTo]);
 
   return { currentUser, loading };

@@ -1,34 +1,53 @@
 // Main Meeting Interface:
-export interface Meeting {
+export type Meeting = {
   id: number;
   title: string;
-  participants: string[];
-  createdBy: string;
-  scheduledOn: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  startedAt?: string;
-  endedAt?: string;
-  status: "scheduled" | "ongoing" | "ended";
-  meetingRoomName: string;
+  description?: string;
+  startTime: string;
+  endTime?: string;
+  timezone?: string;
+  duration?: number;
+  status: "scheduled" | "live" | "past";
+  meetingUrl: string;
+  provider: "zoom" | "google_meet" | "teams";
+  organizerId?: string;
+  expectedParticipants?: number;
+  presentParticipants?: number;
+  providerMetadata: Record<string, any>;
   createdAt: string;
   updatedAt: string;
-}
+};
 
 // Meetings List:
 export type MeetingListItem = Pick<
   Meeting,
   | "id"
   | "title"
-  | "scheduledOn"
-  | "scheduledStart"
-  | "scheduledEnd"
+  | "startTime"
+  | "endTime"
+  | "duration"
   | "status"
-  | "startedAt"
-  | "endedAt"
-  | "participants"
+  | "meetingUrl"
+  | "provider"
 > & {
   latestSummary: string;
+};
+
+export type MeetingStatus =
+  | "scheduled"
+  | "live"
+  | "past"
+  | "no_show"
+  | "cancelled";
+
+export type MeetingsTab = "upcoming" | "live" | "past";
+
+export type MeetingsTabState = {
+  meetings: MeetingListItem[];
+  page: number;
+  loading: boolean;
+  hasMore: boolean;
+  initialized: boolean;
 };
 
 // Todo: Replace TranscriptData with TranscriptSegment
@@ -74,22 +93,4 @@ export interface QAEntry {
 
   status?: "asking" | "answered" | "error";
   sources?: string[];
-}
-
-// Data Transfer Objects:
-export interface CreateMeetingDto {
-  title: string;
-  participants: string[];
-  scheduledOn: string; // ISO date string (date only)
-  scheduledStart: string; // ISO datetime string
-  scheduledEnd: string; // ISO datetime string
-}
-
-export interface UpdateMeetingDto {
-  title?: string;
-  participants?: string[];
-  scheduledOn?: string;
-  scheduledStart?: string;
-  scheduledEnd?: string;
-  status?: "scheduled" | "ongoing" | "ended";
 }

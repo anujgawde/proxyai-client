@@ -12,3 +12,9 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface UpdateUserDto {
+  firstName?: string;
+  lastName?: string;
+  photoURL?: string;
+}
