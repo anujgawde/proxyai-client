@@ -6,30 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { STORAGE_KEYS } from "@/config";
 import { ProviderConnection } from "@/types/providers";
+import { providersService } from "@/api/providers";
 
 // Provider definition
 const PROVIDERS = [
   {
-    id: "zoom" as const,
-    name: "Zoom",
-    description: "Connect your Zoom account to sync meetings",
-    logo: (
-      <svg className="w-10 h-10" viewBox="0 0 48 48" fill="none">
-        <rect width="48" height="48" rx="8" fill="#2D8CFF" />
-        <path
-          d="M16 18h8v12h-8V18zm10 0l8 6v-6h-8zm8 12l-8-6v6h8z"
-          fill="white"
-        />
-      </svg>
-    ),
-    color: "bg-[#2D8CFF]",
-    hoverColor: "hover:bg-[#2578E6]",
-    borderColor: "border-[#2D8CFF]",
-    bgLight: "bg-[#EBF5FF]",
-    isDisabled: false,
-  },
-  {
-    id: "gmeet" as const,
+    id: "google_meet" as const,
     name: "Google Meet",
     description: "Connect your Google account to sync meetings",
     logo: (
@@ -47,24 +29,43 @@ const PROVIDERS = [
     bgLight: "bg-[#E6F4EA]",
     isDisabled: false,
   },
-  {
-    id: "teams" as const,
-    name: "Microsoft Teams",
-    description: "Connect your Microsoft account to sync meetings",
-    logo: (
-      <svg className="w-10 h-10" viewBox="0 0 48 48" fill="none">
-        <rect width="48" height="48" rx="8" fill="#5059C9" />
-        <path d="M28 16h8v16h-8V16z" fill="white" opacity="0.8" />
-        <path d="M12 20h12v12H12V20z" fill="white" />
-        <circle cx="30" cy="18" r="4" fill="white" />
-      </svg>
-    ),
-    color: "bg-[#5059C9]",
-    hoverColor: "hover:bg-[#464EB8]",
-    borderColor: "border-[#5059C9]",
-    bgLight: "bg-[#EEF0FF]",
-    isDisabled: true,
-  },
+  // {
+  //   id: "zoom" as const,
+  //   name: "Zoom",
+  //   description: "Connect your Zoom account to sync meetings",
+  //   logo: (
+  //     <svg className="w-10 h-10" viewBox="0 0 48 48" fill="none">
+  //       <rect width="48" height="48" rx="8" fill="#2D8CFF" />
+  //       <path
+  //         d="M16 18h8v12h-8V18zm10 0l8 6v-6h-8zm8 12l-8-6v6h8z"
+  //         fill="white"
+  //       />
+  //     </svg>
+  //   ),
+  //   color: "bg-[#2D8CFF]",
+  //   hoverColor: "hover:bg-[#2578E6]",
+  //   borderColor: "border-[#2D8CFF]",
+  //   bgLight: "bg-[#EBF5FF]",
+  //   isDisabled: false,
+  // },
+  // {
+  //   id: "teams" as const,
+  //   name: "Microsoft Teams",
+  //   description: "Connect your Microsoft account to sync meetings",
+  //   logo: (
+  //     <svg className="w-10 h-10" viewBox="0 0 48 48" fill="none">
+  //       <rect width="48" height="48" rx="8" fill="#5059C9" />
+  //       <path d="M28 16h8v16h-8V16z" fill="white" opacity="0.8" />
+  //       <path d="M12 20h12v12H12V20z" fill="white" />
+  //       <circle cx="30" cy="18" r="4" fill="white" />
+  //     </svg>
+  //   ),
+  //   color: "bg-[#5059C9]",
+  //   hoverColor: "hover:bg-[#464EB8]",
+  //   borderColor: "border-[#5059C9]",
+  //   bgLight: "bg-[#EEF0FF]",
+  //   isDisabled: true,
+  // },
 ];
 
 // Provider Settings Component
@@ -108,7 +109,7 @@ export default function ProviderSettings() {
         window.location.href = oauthUrl;
       }
 
-      if (providerId === "gmeet") {
+      if (providerId === "google_meet") {
         const params = new URLSearchParams({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
           redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI!,
@@ -133,11 +134,7 @@ export default function ProviderSettings() {
   const handleDisconnect = async (providerId: string) => {
     const provider = PROVIDERS.find((p) => p.id === providerId);
 
-    if (
-      !window.confirm(`Are you sure you want to disconnect ${provider?.name}?`)
-    ) {
-      return;
-    }
+    // Todo: Add a Confirm Disconnect Dialog.
 
     try {
       // Remove token from localStorage
@@ -148,6 +145,9 @@ export default function ProviderSettings() {
       localStorage.removeItem(storageKey);
 
       // Todo: Call backend to delete tokens
+      await providersService.updateProvider(providerId, {
+        isConnected: false,
+      });
 
       loadProviders();
     } catch (error) {

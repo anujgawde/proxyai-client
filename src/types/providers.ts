@@ -1,5 +1,5 @@
 export interface ProviderConnection {
-  provider: "zoom" | "gmeet" | "teams";
+  provider: "zoom" | "google_meet" | "teams";
   connected: boolean;
   connectedAt?: string;
 }

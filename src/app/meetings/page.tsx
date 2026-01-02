@@ -151,7 +151,9 @@ export default function MeetingsPage() {
     const init = async () => {
       const providerStatus = checkProviderTokens();
       const hasAnyProvider =
-        providerStatus.zoom || providerStatus.gmeet || providerStatus.teams;
+        providerStatus.zoom ||
+        providerStatus.google_meet ||
+        providerStatus.teams;
 
       setHasProviderToken(hasAnyProvider);
 
@@ -267,7 +269,7 @@ export default function MeetingsPage() {
                 key={meeting.id}
                 className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-sm transition-shadow"
               >
-                <div>
+                <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     {/* Title */}

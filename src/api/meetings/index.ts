@@ -21,7 +21,7 @@ class MeetingsService {
     const headers: Record<string, string> = {};
 
     const zoomToken = localStorage.getItem(STORAGE_KEYS.ZOOM_TOKEN);
-    const gmeetToken = localStorage.getItem(STORAGE_KEYS.GMEET_TOKEN);
+    const gmeetToken = localStorage.getItem(STORAGE_KEYS.GOOGLE_MEET_TOKEN);
     const teamsToken = localStorage.getItem(STORAGE_KEYS.TEAMS_TOKEN);
 
     if (zoomToken) {
@@ -29,7 +29,7 @@ class MeetingsService {
     }
 
     if (gmeetToken) {
-      headers["x-gmeet-access-token"] = gmeetToken;
+      headers["x-google_meet-access-token"] = gmeetToken;
     }
 
     if (teamsToken) {

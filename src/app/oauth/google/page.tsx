@@ -24,7 +24,7 @@ export default function GoogleOAuthPage() {
         );
 
         if (res.accessToken) {
-          localStorage.setItem("gmeet_access_token", res.accessToken);
+          localStorage.setItem("google_meet_access_token", res.accessToken);
         }
         router.replace("/settings/providers");
       } catch (err) {
