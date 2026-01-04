@@ -7,11 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { meetingsService } from "@/api/meetings";
 import {
+  Meeting,
   MeetingListItem,
   MeetingsTab,
   MeetingsTabState,
 } from "@/types/meetings";
 import { checkProviderTokens } from "@/lib/utils";
+import ViewDetailsDialog from "@/components/meetings/ViewDetailsDialog";
 
 const PAGE_SIZE = 10;
 
@@ -114,6 +116,16 @@ export default function MeetingsPage() {
   const [activeTab, setActiveTab] = useState<MeetingsTab>("upcoming");
   const [hasProviderToken, setHasProviderToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [openMeeting, setOpenMeeting] = useState<MeetingListItem | null>(null);
+
+  const viewDetailsHandler = (meetingId: number) => {
+    const openMeeting = tabState[activeTab].meetings.filter(
+      (meeting: MeetingListItem) => meeting.id === meetingId
+    );
+
+    setOpenMeeting(openMeeting[0]);
+  };
 
   const [tabState, setTabState] = useState<
     Record<MeetingsTab, MeetingsTabState>
@@ -325,7 +337,12 @@ export default function MeetingsPage() {
                   </div>
 
                   <div className="w-full">
-                    <Button className="w-full" size="sm" variant="outline">
+                    <Button
+                      onClick={() => viewDetailsHandler(meeting.id)}
+                      className="w-full"
+                      size="sm"
+                      variant="outline"
+                    >
                       View details
                     </Button>
                   </div>
@@ -344,6 +361,15 @@ export default function MeetingsPage() {
               Load more
             </Button>
           </div>
+        )}
+
+        {openMeeting && (
+          <ViewDetailsDialog
+            isOpen={!!openMeeting}
+            meeting={openMeeting}
+            currentUser={currentUser}
+            onClose={() => setOpenMeeting(null)}
+          />
         )}
       </div>
     </div>

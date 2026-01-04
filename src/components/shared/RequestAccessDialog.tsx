@@ -54,13 +54,8 @@ export default function RequestAccessDialog() {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    console.log("Form submitted:", formData);
-
-    // Show success state
     setSubmitted(true);
 
-    // Reset after 2 seconds
     setTimeout(() => {
       setSubmitted(false);
       setOpen(false);

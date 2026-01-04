@@ -28,12 +28,12 @@ export default function LandingHeader() {
           >
             Features
           </a>
-          <a
+          {/* <a
             href="#pricing"
             className="text-gray-600 hover:text-gray-900 transition-colors"
           >
             Pricing
-          </a>
+          </a> */}
           <a
             href="/demo"
             className="text-gray-600 hover:text-gray-900 transition-colors"

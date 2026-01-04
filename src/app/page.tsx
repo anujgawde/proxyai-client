@@ -433,7 +433,7 @@ export default function HomePage() {
               </span>
             </div>
             <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-gray-900">
+              {/* <a href="#" className="hover:text-gray-900">
                 Privacy Policy
               </a>
               <a href="#" className="hover:text-gray-900">
@@ -441,7 +441,7 @@ export default function HomePage() {
               </a>
               <a href="#" className="hover:text-gray-900">
                 Contact
-              </a>
+              </a> */}
             </div>
             <p className="text-sm text-gray-500">
               © {new Date().getFullYear()} ProxyAI. All rights reserved.

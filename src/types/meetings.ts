@@ -63,7 +63,7 @@ export interface TranscriptEntry {
 
   transcript: TranscriptData[];
 
-  meetingId: string;
+  meetingId: number;
 
   timeStart: string; // ISO String
   timeEnd: string;
@@ -73,7 +73,7 @@ export interface TranscriptEntry {
 export interface Summary {
   id: number;
   content: string;
-  meetingId: string;
+  meetingId: number;
   createdAt: string;
 }
 
