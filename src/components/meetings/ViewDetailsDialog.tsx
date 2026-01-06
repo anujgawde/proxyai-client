@@ -220,7 +220,6 @@ export default function ViewDetailsDialog({
         page,
         10
       );
-      console.log(response.data);
       if (!response || !response.data) {
         if (!append) {
           setSummaries([]);
@@ -704,8 +703,8 @@ export default function ViewDetailsDialog({
                   </button>
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  Press Enter to send • Example: "What were the main discussion
-                  points?"
+                  Press Enter to send • Example: &quot;What were the main discussion
+                  points?&quot;
                 </p>
               </div>
             </div>

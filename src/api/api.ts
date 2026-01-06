@@ -42,7 +42,6 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor - Handle errors
     this.axiosInstance.interceptors.response.use(
       (response) => response,
       (error) => {

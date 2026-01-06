@@ -48,10 +48,8 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  // Keep Firebase user in a ref for token operations
   const firebaseUserRef = useRef<FirebaseUser | null>(null);
 
-  // Helper function to set session cookie
   const setSessionCookie = async (fbUser: FirebaseUser | null) => {
     if (fbUser) {
       try {
@@ -102,11 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const backendUser = await authService.signUp(userData);
 
-      // Store Firebase user in ref
       firebaseUserRef.current = user;
       setCurrentUser(backendUser);
 
-      // Set session cookie with Firebase user
       await setSessionCookie(user);
     } catch (error: any) {
       throw new Error(getFirebaseErrorMessage(error.code));
@@ -117,14 +113,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { user } = await signInWithEmailAndPassword(auth, email, password);
 
-      // Fetch backend user
       const backendUser = await fetchBackendUser();
 
-      // Store Firebase user in ref
       firebaseUserRef.current = user;
       setCurrentUser(backendUser);
 
-      // Set session cookie with Firebase user
       await setSessionCookie(user);
     } catch (error: any) {
       throw new Error(getFirebaseErrorMessage(error.code));
@@ -194,14 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        // Store Firebase user in ref
         firebaseUserRef.current = fbUser;
 
-        // Fetch backend user
         const backendUser = await fetchBackendUser();
         setCurrentUser(backendUser);
 
-        // Set session cookie with Firebase user
         await setSessionCookie(fbUser);
       } else {
         firebaseUserRef.current = null;

@@ -9,7 +9,6 @@ import {
   VideoOff,
   Phone,
   Play,
-  Square,
   FileText,
   Users,
   Calendar,
@@ -98,9 +97,7 @@ export default function MeetingDetailPage() {
     const socket = socketService.getSocket();
     if (!socket || !socket.connected) return;
 
-    console.log("Setting up socket listeners for meeting:", id);
 
-    // Track if we've already joined
     let hasJoined = false;
 
     const handleConnect = () => {
@@ -119,7 +116,6 @@ export default function MeetingDetailPage() {
 
     const handleMeetingStarted = (updatedMeeting: any) => {
       if (updatedMeeting.id === id) {
-        console.log("Meeting started:", updatedMeeting);
         setMeeting(updatedMeeting);
         setIsMeetingStarted(true);
       }
@@ -127,7 +123,6 @@ export default function MeetingDetailPage() {
 
     const handleMeetingEnded = (updatedMeeting: any) => {
       if (updatedMeeting.id === id) {
-        console.log("Meeting ended:", updatedMeeting);
         setMeeting(updatedMeeting);
         setIsMeetingStarted(false);
         if (isRecording) {
@@ -138,7 +133,6 @@ export default function MeetingDetailPage() {
 
     const handleNewTranscript = (entry: any) => {
       if (entry.meetingId === id) {
-        console.log("New transcript entry:", entry);
         const timestamp = format(new Date(entry.timestamp), "HH:mm:ss");
 
         setTranscript((prev) => {
@@ -155,11 +149,9 @@ export default function MeetingDetailPage() {
     };
 
     const handleUserJoined = ({ userEmail }: { userEmail: string }) => {
-      console.log(`User ${userEmail} joined the meeting`);
     };
 
     const handleUserLeft = ({ userEmail }: { userEmail: string }) => {
-      console.log(`User ${userEmail} left the meeting`);
     };
 
     socketService.on("meeting-started", handleMeetingStarted);

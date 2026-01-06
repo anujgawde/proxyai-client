@@ -1,5 +1,4 @@
 import { SettingsNav } from "@/components/settings/SettingsNav";
-import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { Separator } from "@/components/ui/separator";
 
 export default function SettingsPage({

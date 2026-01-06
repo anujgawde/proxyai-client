@@ -9,14 +9,12 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Button } from "../ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { useRouter } from "next/navigation";
-import GoogleIcon from "../../../public/icons/GoogleIcon";
 
 export default function AuthForm() {
   const [isSignUp, setIsSignUp] = useState(true);
@@ -101,22 +99,12 @@ export default function AuthForm() {
         await signIn(email, password);
         router.push("/meetings");
       }
-    } catch (error: any) {
-      setErrors((prev) => ({ ...prev, general: error.message }));
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
+      setErrors((prev) => ({ ...prev, general: errorMessage }));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    setGoogleLoading(true);
-    try {
-      await signInWithGoogle();
-      router.push("/meetings");
-    } catch (error: any) {
-      setErrors((prev) => ({ ...prev, general: error.message }));
-    } finally {
-      setGoogleLoading(false);
     }
   };
 

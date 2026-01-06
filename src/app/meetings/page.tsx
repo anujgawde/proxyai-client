@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { meetingsService } from "@/api/meetings";
 import {
-  Meeting,
   MeetingListItem,
   MeetingsTab,
   MeetingsTabState,
@@ -188,7 +187,6 @@ export default function MeetingsPage() {
       try {
         const message: SSEMessage = JSON.parse(event.data);
 
-        console.log("SSE message received:", message.type, message.data); // DEBUG LOG
 
         switch (message.type) {
           case "meeting_status_update":
@@ -259,7 +257,6 @@ export default function MeetingsPage() {
                   ...updatedState[tab],
                   meetings: updatedState[tab].meetings.map((meeting) => {
                     if (meeting.id === summary.meetingId) {
-                      console.log("Updating summary for meeting", meeting.id); // DEBUG LOG
                       return {
                         ...meeting,
                         latestSummary: summary.content,
@@ -388,10 +385,6 @@ export default function MeetingsPage() {
     }
   }, [activeTab, hasProviderToken]);
 
-  /* ---------------------------------- */
-  /* API Fetch                          */
-  /* ---------------------------------- */
-
   const fetchMeetings = async (tab: MeetingsTab, page: number) => {
     setError(null);
 
@@ -405,8 +398,6 @@ export default function MeetingsPage() {
         page,
         limit: PAGE_SIZE,
       });
-
-      console.log(data);
 
       setTabState((prev) => ({
         ...prev,

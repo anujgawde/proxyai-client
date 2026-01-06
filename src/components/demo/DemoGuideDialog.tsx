@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { HelpCircle, Play, Eye, Radio, Sparkles } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -82,8 +82,8 @@ export default function DemoGuideDialog({
                     View Meeting Details
                   </h4>
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    Click "View Details" to access live transcripts, AI
-                    summaries, and the Q&A feature.
+                    Click &quot;View Details&quot; to access live transcripts, AI
+                    summaries, and the Q&amp;A feature.
                   </p>
                 </div>
               </div>

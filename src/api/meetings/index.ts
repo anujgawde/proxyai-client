@@ -36,8 +36,6 @@ class MeetingsService {
       headers["x-teams-access-token"] = teamsToken;
     }
 
-    console.log(headers);
-
     const response = await api.post(
       "/meetings/sync",
       {},
@@ -49,7 +47,6 @@ class MeetingsService {
     return response.data;
   }
 
-  // Get single meeting by ID
   async getMeetingById(id: string) {
     const response = await api.get(`/meetings/${id}`);
     return response.data;

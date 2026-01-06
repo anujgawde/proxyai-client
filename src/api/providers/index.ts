@@ -6,8 +6,11 @@ class ProvidersService {
     return response.data;
   }
 
-  async updateProvider(providerName: string, updateData: any) {
-    const res = await api.patch(`/providers/${providerName}`, {
+  async updateProvider(
+    providerName: string,
+    updateData: Record<string, unknown>
+  ) {
+    await api.patch(`/providers/${providerName}`, {
       ...updateData,
     });
   }

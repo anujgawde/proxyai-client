@@ -56,7 +56,7 @@ export default function HomePage() {
                     </div>
                   </CardHeader>
                   <CardContent className="text-xs text-gray-600">
-                    "Let's discuss the Q4 campaign strategy..."
+                    &quot;Let&apos;s discuss the Q4 campaign strategy...&quot;
                   </CardContent>
                 </Card>
                 <Card className="border-gray-200">
@@ -67,7 +67,7 @@ export default function HomePage() {
                     </div>
                   </CardHeader>
                   <CardContent className="text-xs text-gray-600">
-                    "The new feature rollout is ahead of schedule..."
+                    &quot;The new feature rollout is ahead of schedule...&quot;
                   </CardContent>
                 </Card>
                 <Card className="border-gray-200">
@@ -78,7 +78,7 @@ export default function HomePage() {
                     </div>
                   </CardHeader>
                   <CardContent className="text-xs text-gray-600">
-                    "Pipeline looks strong for this quarter..."
+                    &quot;Pipeline looks strong for this quarter...&quot;
                   </CardContent>
                 </Card>
               </div>
@@ -183,7 +183,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Save Time</h3>
               <p className="text-gray-600 text-center">
-                Skip meetings that don't need your presence.
+                Skip meetings that don&apos;t need your presence.
               </p>
             </div>
             <div className="flex flex-col items-center">

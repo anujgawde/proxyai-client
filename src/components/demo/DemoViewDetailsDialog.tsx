@@ -10,19 +10,14 @@ import {
   AlertCircle,
   Bot,
   Brain,
-  CheckCircle,
-  Clock,
   FileText,
   Loader2,
   MessageCircle,
-  Search,
   Send,
   Target,
-  User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { QA_RESPONSES } from "@/lib/demo-data";
 
@@ -454,8 +449,8 @@ export default function DemoViewDetailsDialog({
                   </Button>
                 </div>
                 <p className="text-xs text-slate-400 mt-2">
-                  Try: "What was the cause?" • "What's the timeline?" • "What
-                  are the risks?"
+                  Try: &quot;What was the cause?&quot; • &quot;What&apos;s the timeline?&quot; • &quot;What
+                  are the risks?&quot;
                 </p>
               </div>
             </div>
