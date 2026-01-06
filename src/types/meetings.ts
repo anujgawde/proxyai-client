@@ -40,7 +40,7 @@ export type MeetingStatus =
   | "no_show"
   | "cancelled";
 
-export type MeetingsTab = "upcoming" | "live" | "past";
+export type MeetingsTab = "scheduled" | "live" | "past";
 
 export type MeetingsTabState = {
   meetings: MeetingListItem[];

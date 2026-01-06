@@ -49,18 +49,6 @@ class MeetingsService {
     return response.data;
   }
 
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* Temporarily Removed APIs Seperated.                  */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-  /* ---------------------------------------------------- */
-
   // Get single meeting by ID
   async getMeetingById(id: string) {
     const response = await api.get(`/meetings/${id}`);
@@ -95,6 +83,20 @@ class MeetingsService {
     return response.data;
   }
 
+  async getMeetingTranscriptSegments(
+    meetingId: string,
+    page: number = 1,
+    limit: number = 50
+  ) {
+    const response = await api.get(
+      `/meetings/${meetingId}/transcript-segments`,
+      {
+        params: { page, limit },
+      }
+    );
+    return response.data;
+  }
+
   async getQAHistory(
     id: string,
     page: number = 1,
@@ -114,6 +116,25 @@ class MeetingsService {
     );
     return response.data;
   }
+
+  async askQuestion(meetingId: string, question: string): Promise<QAEntry> {
+    const response = await api.post(`/meetings/${meetingId}/ask-question`, {
+      question,
+    });
+    return response.data;
+  }
+
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* Temporarily Removed APIs Seperated.                  */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
+  /* ---------------------------------------------------- */
 }
 
 export const meetingsService = new MeetingsService();

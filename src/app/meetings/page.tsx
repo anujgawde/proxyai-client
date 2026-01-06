@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Calendar, Loader2, Video } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Calendar, Clock, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -11,11 +11,39 @@ import {
   MeetingListItem,
   MeetingsTab,
   MeetingsTabState,
+  MeetingStatus,
+  Summary,
 } from "@/types/meetings";
 import { checkProviderTokens } from "@/lib/utils";
 import ViewDetailsDialog from "@/components/meetings/ViewDetailsDialog";
+import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 10;
+interface SSEMessage {
+  userId: string;
+  type:
+    | "connected"
+    | "heartbeat"
+    | "meeting_status_update"
+    | "transcript_update"
+    | "summary_update";
+  data?: any;
+  message?: string;
+  timestamp: string;
+}
+
+interface TranscriptUpdateData {
+  speaker_name: string;
+  speaker_uuid: string;
+  speaker_user_uuid: string;
+  speaker_is_host: boolean;
+  timestamp_ms: number;
+  duration_ms: number;
+  transcription: {
+    transcript: string;
+    words: number;
+  };
+}
 
 /* ---------------------------------- */
 /* UI Components                      */
@@ -65,9 +93,8 @@ function MeetingsPageHeader() {
       </div>
 
       <div>
-        <Button onClick={() => meetingsService.syncMeetings()}>
-          Sync Meetings
-        </Button>
+        {/* Todo: This will open a dialog, which will prompt the user to fill in all the details according to the meeting provider selected */}
+        <Button className="">Schedule Meeting</Button>
       </div>
     </div>
   );
@@ -81,7 +108,7 @@ function MeetingsTabs({
   onChange: (tab: MeetingsTab) => void;
 }) {
   const tabs: { label: string; value: MeetingsTab }[] = [
-    { label: "Upcoming", value: "upcoming" },
+    { label: "Scheduled", value: "scheduled" },
     { label: "Live", value: "live" },
     { label: "Past", value: "past" },
   ];
@@ -113,11 +140,182 @@ export default function MeetingsPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<MeetingsTab>("upcoming");
+  const [activeTab, setActiveTab] = useState<MeetingsTab>("scheduled");
+  const statusToTab: Record<MeetingStatus, MeetingsTab> = {
+    scheduled: "scheduled",
+    live: "live",
+    past: "past",
+    cancelled: "past",
+    no_show: "past",
+  };
   const [hasProviderToken, setHasProviderToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [openMeeting, setOpenMeeting] = useState<MeetingListItem | null>(null);
+
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // SSE Connection - handlers moved inside useEffect to capture latest state
+  useEffect(() => {
+    if (!currentUser?.firebaseUid) {
+      return;
+    }
+
+    // Close existing connection if any
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
+    const eventSource = new EventSource(
+      `http://localhost:8001/meetings/sse?userId=${currentUser.firebaseUid}`,
+      { withCredentials: true }
+    );
+
+    eventSource.onopen = () => {
+      setConnectionStatus("connected");
+
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message: SSEMessage = JSON.parse(event.data);
+
+        console.log("SSE message received:", message.type, message.data); // DEBUG LOG
+
+        switch (message.type) {
+          case "meeting_status_update":
+            if (!message.data) break;
+
+            // Use functional update to avoid stale state
+            setTabState((prev) => {
+              const { id, status } = message.data;
+              let fromTab: MeetingsTab | null = null;
+              let meeting: MeetingListItem | null = null;
+
+              // Find meeting in any tab
+              (Object.keys(prev) as MeetingsTab[]).forEach((tab) => {
+                const found = prev[tab].meetings.find((m) => m.id === id);
+                if (found) {
+                  fromTab = tab;
+                  meeting = found;
+                }
+              });
+
+              if (!fromTab || !meeting) return prev;
+
+              const targetTab: MeetingsTab =
+                statusToTab[status as MeetingStatus];
+              const sourceState: MeetingsTabState = prev[fromTab]!;
+              const targetState: MeetingsTabState = prev[targetTab]!;
+
+              // Same tab - just update status
+              if (fromTab === targetTab) {
+                return {
+                  ...prev,
+                  [fromTab]: {
+                    ...sourceState,
+                    meetings: sourceState.meetings.map((m) =>
+                      m.id === id ? { ...m, status } : m
+                    ),
+                  },
+                };
+              }
+
+              // Different tab - move meeting
+              return {
+                ...prev,
+                [fromTab]: {
+                  ...sourceState,
+                  meetings: sourceState.meetings.filter((m) => m.id !== id),
+                },
+                [targetTab]: {
+                  ...(targetState as MeetingsTabState),
+                  meetings: [
+                    { ...(meeting as MeetingListItem), status },
+                    ...(targetState?.meetings || []),
+                  ],
+                },
+              };
+            });
+            break;
+
+          case "summary_update":
+            if (!message.data) break;
+
+            setTabState((prev) => {
+              const summary = message.data as Summary;
+              const updatedState = { ...prev };
+
+              (Object.keys(updatedState) as MeetingsTab[]).forEach((tab) => {
+                updatedState[tab] = {
+                  ...updatedState[tab],
+                  meetings: updatedState[tab].meetings.map((meeting) => {
+                    if (meeting.id === summary.meetingId) {
+                      console.log("Updating summary for meeting", meeting.id); // DEBUG LOG
+                      return {
+                        ...meeting,
+                        latestSummary: summary.content,
+                      };
+                    }
+                    return meeting;
+                  }),
+                };
+              });
+
+              return updatedState;
+            });
+            break;
+
+          case "transcript_update":
+            // Transcripts only handled in ViewDetailsDialog
+            console.log(
+              "Transcript update received (handled by ViewDetailsDialog)"
+            ); // DEBUG LOG
+            break;
+
+          case "connected":
+          case "heartbeat":
+            break;
+
+          default:
+            console.warn("Unknown SSE event type:", message.type);
+        }
+      } catch (err) {
+        console.error("SSE parse error:", err);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("SSE error:", error);
+      setConnectionStatus("disconnected");
+      eventSource.close();
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log("Attempting to reconnect...");
+        // Trigger re-render by updating a state value
+        setConnectionStatus("connecting");
+      }, 3000);
+    };
+
+    eventSourceRef.current = eventSource;
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [currentUser?.firebaseUid]); // Depend only on firebaseUid, not entire object
 
   const viewDetailsHandler = (meetingId: number) => {
     const openMeeting = tabState[activeTab].meetings.filter(
@@ -130,7 +328,7 @@ export default function MeetingsPage() {
   const [tabState, setTabState] = useState<
     Record<MeetingsTab, MeetingsTabState>
   >({
-    upcoming: {
+    scheduled: {
       meetings: [],
       page: 1,
       loading: false,
@@ -170,7 +368,7 @@ export default function MeetingsPage() {
       setHasProviderToken(hasAnyProvider);
 
       if (hasAnyProvider) {
-        fetchMeetings("upcoming", 1);
+        fetchMeetings("scheduled", 1);
       }
     };
 
@@ -203,16 +401,12 @@ export default function MeetingsPage() {
     }));
 
     try {
-      const statusMap = {
-        upcoming: "scheduled",
-        live: "live",
-        past: "past",
-      } as const;
-
-      const data = await meetingsService.getMeetingsByStatus(statusMap[tab], {
+      const data = await meetingsService.getMeetingsByStatus(tab, {
         page,
         limit: PAGE_SIZE,
       });
+
+      console.log(data);
 
       setTabState((prev) => ({
         ...prev,
@@ -279,64 +473,102 @@ export default function MeetingsPage() {
             {currentTab.meetings.map((meeting) => (
               <div
                 key={meeting.id}
-                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-sm transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-sm transition-shadow relative"
               >
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex items-center justify-between">
-                    {/* Title */}
-                    <h3 className="text-base font-semibold text-gray-900 leading-tight">
-                      {meeting.title}
-                    </h3>
+                <div className="h-full flex flex-col justify-between">
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between min-w-0">
+                      {/* Title */}
+                      <h3 className="text-base font-semibold text-gray-900 leading-tight truncate">
+                        {meeting.title}
+                      </h3>
 
-                    {/* Status pill */}
-                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
-                      {activeTab === "live"
-                        ? "Live"
-                        : activeTab === "upcoming"
-                        ? "Upcoming"
-                        : "Completed"}
-                    </span>
-                  </div>
+                      {/* Status pill */}
+                      <Badge
+                        className={`capitalize ${
+                          meeting.status === "live"
+                            ? "bg-red-50 text-red-700 border-red-200 text-xs"
+                            : meeting.status === "scheduled"
+                            ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                            : "bg-gray-50 text-gray-700 border-gray-200 text-xs"
+                        }`}
+                      >
+                        {meeting.status}
+                      </Badge>
+                    </div>
 
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>
-                          {new Date(meeting.startTime).toLocaleString()}
-                        </span>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="text-sm text-gray-600 flex space-x-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span>
+                              {new Date(meeting.startTime).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-gray-400" />
+                            <span>
+                              {new Date(meeting.startTime).toLocaleTimeString(
+                                [],
+                                { hour: "numeric", minute: "2-digit" }
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600  min-w-0">
+                          <img
+                            src={
+                              meeting.provider === "google_meet"
+                                ? "meetings/googlemeet-logo.svg"
+                                : meeting.provider === "teams"
+                                ? "meetings/teams-logo.svg"
+                                : "meetings/zoom-logo.svg"
+                            }
+                            className="h-4 w-4"
+                          />
 
-                  {/*  Summaries Text */}
-                  <div
-                    className={` ${!meeting?.latestSummary ? `h-12` : "h-24"}`}
-                  >
-                    {meeting.latestSummary ? (
-                      <div className="bg-green-50 rounded-md p-3 h-full flex flex-col overflow-y-auto">
-                        <p className="text-xs font-medium text-green-700 mb-1 flex-shrink-0 ">
-                          Latest Summary:
-                        </p>
-                        <p className="text-sm text-gray-700  line-clamp-3 flex-1 ">
-                          {meeting.latestSummary}
-                        </p>
+                          <a
+                            className="underline truncate"
+                            href={meeting.meetingUrl}
+                          >
+                            {meeting.meetingUrl}
+                          </a>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="bg-gray-50 rounded-md p-3 h-full flex items-center justify-start">
-                        <p className="text-sm text-gray-500 italic">
-                          {meeting.status === "scheduled"
-                            ? "Meeting not started yet."
-                            : meeting.status === "past"
-                            ? "Meeting has ended."
-                            : "Generating summaries..."}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="w-full">
+                    {/*  Summaries Text */}
+                    <div>
+                      {meeting.latestSummary ? (
+                        <div className="bg-green-50 rounded-md p-3 h-full flex flex-col overflow-y-auto">
+                          <p className="text-xs font-medium text-green-700 mb-1 flex-shrink-0 ">
+                            Latest Summary:
+                          </p>
+                          <p className="text-sm text-gray-700 line-clamp-3 flex-1 ">
+                            {meeting.latestSummary}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 rounded-md p-3 h-full flex items-center justify-start">
+                          <p className="text-sm text-gray-500 italic">
+                            {meeting.status === "scheduled"
+                              ? "Meeting not started yet."
+                              : meeting.status === "past"
+                              ? "Meeting has ended."
+                              : "Generating summaries..."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full py-2">
                     <Button
                       onClick={() => viewDetailsHandler(meeting.id)}
                       className="w-full"

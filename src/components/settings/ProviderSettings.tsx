@@ -14,15 +14,6 @@ const PROVIDERS = [
     id: "google_meet" as const,
     name: "Google Meet",
     description: "Connect your Google account to sync meetings",
-    logo: (
-      <svg className="w-10 h-10" viewBox="0 0 48 48" fill="none">
-        <rect width="48" height="48" rx="8" fill="#00832D" />
-        <path d="M24 14L14 20v8l10 6 10-6v-8l-10-6z" fill="#0066DA" />
-        <path d="M34 20l-10 6v8l10-6v-8z" fill="#E94235" />
-        <path d="M14 20v8l10 6v-8l-10-6z" fill="#2684FC" />
-        <path d="M24 14v12l10-6-10-6z" fill="#00AC47" />
-      </svg>
-    ),
     color: "bg-[#00832D]",
     hoverColor: "hover:bg-[#007226]",
     borderColor: "border-[#00832D]",
@@ -193,8 +184,18 @@ export default function ProviderSettings() {
             >
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 mt-1">{provider.logo}</div>
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={
+                        provider.id === "google_meet"
+                          ? "/meetings/googlemeet-logo.svg"
+                          : provider.name === "teams"
+                          ? "/meetings/teams-logo.svg"
+                          : "/meetings/zoom-logo.svg"
+                      }
+                      className="h-5 w-5"
+                    />
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Label className="text-base font-semibold text-neutral-900">
