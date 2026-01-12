@@ -170,7 +170,7 @@ export default function MeetingsPage() {
     }
 
     const eventSource = new EventSource(
-      `http://localhost:8001/meetings/sse?userId=${currentUser.firebaseUid}`,
+      `https://api.proxyai.site/meetings/sse?userId=${currentUser.firebaseUid}`,
       { withCredentials: true }
     );
 
@@ -186,7 +186,6 @@ export default function MeetingsPage() {
     eventSource.onmessage = (event) => {
       try {
         const message: SSEMessage = JSON.parse(event.data);
-
 
         switch (message.type) {
           case "meeting_status_update":
@@ -539,7 +538,7 @@ export default function MeetingsPage() {
                     <div>
                       {meeting.latestSummary ? (
                         <div className="bg-green-50 rounded-md p-3 h-full flex flex-col overflow-y-auto">
-                          <p className="text-xs font-medium text-green-700 mb-1 flex-shrink-0 ">
+                          <p className="text-xs font-medium text-green-700 mb-1 flex shrink-0">
                             Latest Summary:
                           </p>
                           <p className="text-sm text-gray-700 line-clamp-3 flex-1 ">

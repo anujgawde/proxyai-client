@@ -89,7 +89,7 @@ export default function ViewDetailsDialog({
 
     // Connect to SSE for live updates
     const eventSource = new EventSource(
-      `http://localhost:8001/meetings/sse?userId=${currentUser.firebaseUid}`,
+      `https://api.proxyai.site/meetings/sse?userId=${currentUser.firebaseUid}`,
       { withCredentials: true }
     );
 
@@ -703,8 +703,8 @@ export default function ViewDetailsDialog({
                   </button>
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  Press Enter to send • Example: &quot;What were the main discussion
-                  points?&quot;
+                  Press Enter to send • Example: &quot;What were the main
+                  discussion points?&quot;
                 </p>
               </div>
             </div>
