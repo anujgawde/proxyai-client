@@ -89,7 +89,7 @@ export default function ViewDetailsDialog({
 
     // Connect to SSE for live updates
     const eventSource = new EventSource(
-      `https://api.proxyai.site/meetings/sse?userId=${currentUser.firebaseUid}`,
+      `${process.env.API_BASE_URL}/meetings/sse?userId=${currentUser.firebaseUid}`,
       { withCredentials: true }
     );
 
