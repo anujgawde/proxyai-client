@@ -358,8 +358,8 @@ export default function MeetingsPage() {
       const providerStatus = checkProviderTokens();
       const hasAnyProvider =
         providerStatus.zoom ||
-        providerStatus.google_meet ||
-        providerStatus.teams;
+        providerStatus.google ||
+        providerStatus.microsoft;
 
       setHasProviderToken(hasAnyProvider);
 
@@ -515,9 +515,9 @@ export default function MeetingsPage() {
                         <div className="flex items-center gap-2 text-sm text-gray-600  min-w-0">
                           <img
                             src={
-                              meeting.provider === "google_meet"
+                              meeting.meetingProvider === "google_meet"
                                 ? "meetings/googlemeet-logo.svg"
-                                : meeting.provider === "teams"
+                                : meeting.meetingProvider === "teams"
                                 ? "meetings/teams-logo.svg"
                                 : "meetings/zoom-logo.svg"
                             }

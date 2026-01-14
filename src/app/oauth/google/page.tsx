@@ -20,11 +20,11 @@ export default function GoogleOAuthPage() {
       try {
         const res = await providersService.exchangeCodeForTokens(
           code,
-          "google_meet"
+          "google"
         );
 
         if (res.accessToken) {
-          localStorage.setItem("google_meet_access_token", res.accessToken);
+          localStorage.setItem("google_access_token", res.accessToken);
         }
         router.replace("/settings/providers");
       } catch (err) {

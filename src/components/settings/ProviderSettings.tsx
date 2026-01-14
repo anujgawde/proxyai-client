@@ -11,9 +11,9 @@ import { providersService } from "@/api/providers";
 // Provider definition
 const PROVIDERS = [
   {
-    id: "google_meet" as const,
-    name: "Google Meet",
-    description: "Connect your Google account to sync meetings",
+    id: "google" as const,
+    name: "Google Calendar",
+    description: "Connect your Google Calendar to sync all meetings",
     color: "bg-[#00832D]",
     hoverColor: "hover:bg-[#007226]",
     borderColor: "border-[#00832D]",
@@ -100,7 +100,7 @@ export default function ProviderSettings() {
         window.location.href = oauthUrl;
       }
 
-      if (providerId === "google_meet") {
+      if (providerId === "google") {
         const params = new URLSearchParams({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
           redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI!,
@@ -162,10 +162,10 @@ export default function ProviderSettings() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h2 className="text-lg font-semibold text-neutral-900">
-          Meeting Providers
+          Calendar Providers
         </h2>
         <p className="text-sm text-neutral-600 mt-1">
-          Connect your calendar services to sync meetings
+          Connect your calendar services to automatically sync meetings
         </p>
       </div>
 
@@ -187,9 +187,9 @@ export default function ProviderSettings() {
                   <div className="flex items-center gap-4">
                     <img
                       src={
-                        provider.id === "google_meet"
+                        provider.id === "google"
                           ? "/meetings/googlemeet-logo.svg"
-                          : provider.name === "teams"
+                          : provider.id === "microsoft"
                           ? "/meetings/teams-logo.svg"
                           : "/meetings/zoom-logo.svg"
                       }
@@ -214,7 +214,7 @@ export default function ProviderSettings() {
                     </div>
                   </div>
 
-                  <div className="flex-shrink-0">
+                  <div className="flex shrink-0">
                     {isConnected ? (
                       <Button
                         onClick={() => handleDisconnect(provider.id)}
@@ -252,9 +252,9 @@ export default function ProviderSettings() {
       </div>
 
       {/* Info box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
         <div className="flex gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-blue-600 flex shrink-0 mt-0.5" />
           <div className="text-sm text-blue-900">
             <p className="font-medium mb-1">About provider connections</p>
             <ul className="space-y-1 text-blue-800 list-disc list-inside">
@@ -265,7 +265,7 @@ export default function ProviderSettings() {
             </ul>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

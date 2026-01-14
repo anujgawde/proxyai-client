@@ -9,7 +9,8 @@ export type Meeting = {
   duration?: number;
   status: "scheduled" | "live" | "past";
   meetingUrl: string;
-  provider: "zoom" | "google_meet" | "teams";
+  calendarProvider: "google" | "zoom" | "microsoft";
+  meetingProvider: "google_meet" | "zoom" | "teams";
   organizerId?: string;
   expectedParticipants?: number;
   presentParticipants?: number;
@@ -28,7 +29,8 @@ export type MeetingListItem = Pick<
   | "duration"
   | "status"
   | "meetingUrl"
-  | "provider"
+  | "calendarProvider"
+  | "meetingProvider"
 > & {
   latestSummary: string;
 };

@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function checkProviderTokens() {
   return {
     zoom: !!localStorage.getItem(STORAGE_KEYS.ZOOM_TOKEN),
-    google_meet: !!localStorage.getItem(STORAGE_KEYS.GOOGLE_MEET_TOKEN),
-    teams: !!localStorage.getItem(STORAGE_KEYS.TEAMS_TOKEN),
+    google: !!localStorage.getItem(STORAGE_KEYS.GOOGLE_TOKEN),
+    microsoft: !!localStorage.getItem(STORAGE_KEYS.MICROSOFT_TOKEN),
   };
 }

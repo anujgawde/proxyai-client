@@ -21,19 +21,19 @@ class MeetingsService {
     const headers: Record<string, string> = {};
 
     const zoomToken = localStorage.getItem(STORAGE_KEYS.ZOOM_TOKEN);
-    const gmeetToken = localStorage.getItem(STORAGE_KEYS.GOOGLE_MEET_TOKEN);
-    const teamsToken = localStorage.getItem(STORAGE_KEYS.TEAMS_TOKEN);
+    const googleToken = localStorage.getItem(STORAGE_KEYS.GOOGLE_TOKEN);
+    const microsoftToken = localStorage.getItem(STORAGE_KEYS.MICROSOFT_TOKEN);
 
     if (zoomToken) {
       headers["x-zoom-access-token"] = zoomToken;
     }
 
-    if (gmeetToken) {
-      headers["x-google_meet-access-token"] = gmeetToken;
+    if (googleToken) {
+      headers["x-google-access-token"] = googleToken;
     }
 
-    if (teamsToken) {
-      headers["x-teams-access-token"] = teamsToken;
+    if (microsoftToken) {
+      headers["x-microsoft-access-token"] = microsoftToken;
     }
 
     const response = await api.post(
@@ -49,14 +49,6 @@ class MeetingsService {
 
   async getMeetingById(id: string) {
     const response = await api.get(`/meetings/${id}`);
-    return response.data;
-  }
-
-  async getMeetingTranscripts(id: string, page: number, limit: number) {
-    const response = await api.get(
-      `/meetings/${id}/transcripts?page=${page}&limit=${limit}`
-    );
-
     return response.data;
   }
 
