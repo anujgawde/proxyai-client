@@ -2,7 +2,7 @@
 
 > AI-powered meeting intelligence platform that helps you stay on top of every meeting without being in the room.
 
-ProxyAI provides live transcripts, AI-powered summaries, and AI QnA with real-time conversations, allowing teams to stay informed and productive without attending every session.
+ProxyAI provides live transcripts, AI-powered summaries, and AI QnA with real-time conversations, allowing teams to stay informed and productive without attending every session. View Demo [here.](https://drive.google.com/file/d/1PReB_AkqONzoTPIQ-a94elQ_6hPoNTqO/view?usp=drive_link)
 
 ## Features
 
