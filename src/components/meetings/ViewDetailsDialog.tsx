@@ -381,11 +381,11 @@ export default function ViewDetailsDialog({
         style={{ maxWidth: "none" }}
       >
         <DialogHeader className="flex items-center flex-row px-6 py-4 space-x-2 border-b">
-          <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-            <Target className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <Target className="w-5 h-5 text-primary-foreground" />
           </div>
           <div className="flex-col flex">
-            <DialogTitle className="text-xl font-semibold text-slate-900">
+            <DialogTitle className="text-xl font-semibold text-primary">
               {meeting.title}
             </DialogTitle>
             <div className="flex items-center space-x-3">
@@ -411,8 +411,8 @@ export default function ViewDetailsDialog({
           <button
             className={`w-1/3 px-6 py-3 font-medium text-sm border-b-2 transition-all ${
               activeTab === "transcripts"
-                ? "border-slate-900 text-slate-900 bg-gray-50"
-                : "border-transparent text-gray-600 hover:text-slate-900"
+                ? "border-primary text-primary bg-gray-50"
+                : "border-transparent text-gray-600 hover:text-primary"
             }`}
             onClick={() => setActiveTab("transcripts")}
           >
@@ -422,8 +422,8 @@ export default function ViewDetailsDialog({
           <button
             className={`w-1/3 px-6 py-3 font-medium text-sm border-b-2 transition-all ${
               activeTab === "summaries"
-                ? "border-slate-900 text-slate-900 bg-gray-50"
-                : "border-transparent text-gray-600 hover:text-slate-900"
+                ? "border-primary text-primary bg-gray-50"
+                : "border-transparent text-gray-600 hover:text-primary"
             }`}
             onClick={() => setActiveTab("summaries")}
           >
@@ -433,8 +433,8 @@ export default function ViewDetailsDialog({
           <button
             className={`w-1/3 px-6 py-3 font-medium text-sm border-b-2 transition-all ${
               activeTab === "qa"
-                ? "border-slate-900 text-slate-900 bg-gray-50"
-                : "border-transparent text-gray-600 hover:text-slate-900"
+                ? "border-primary text-primary bg-gray-50"
+                : "border-transparent text-gray-600 hover:text-primary"
             }`}
             onClick={() => setActiveTab("qa")}
           >
@@ -458,7 +458,7 @@ export default function ViewDetailsDialog({
                 ) : transcripts.length === 0 ? (
                   <div className="text-center py-16">
                     <MessageCircle className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-base font-medium text-slate-900 mb-1">
+                    <h3 className="text-base font-medium text-primary mb-1">
                       {meeting.status === "scheduled"
                         ? "Waiting for transcripts..."
                         : "No transcripts available"}
@@ -530,7 +530,7 @@ export default function ViewDetailsDialog({
                 ) : summaries.length === 0 ? (
                   <div className="text-center py-16">
                     <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-base font-medium text-slate-900 mb-1">
+                    <h3 className="text-base font-medium text-primary mb-1">
                       No summaries yet
                     </h3>
                     <p className="text-sm text-slate-500">
@@ -583,7 +583,7 @@ export default function ViewDetailsDialog({
                 ) : qaHistory.length === 0 ? (
                   <div className="text-center py-16">
                     <Brain className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-base font-medium text-slate-900 mb-1">
+                    <h3 className="text-base font-medium text-primary mb-1">
                       No Questions Yet
                     </h3>
                     <p className="text-sm text-slate-500">
@@ -662,7 +662,7 @@ export default function ViewDetailsDialog({
                       <div className="text-center py-4">
                         <button
                           onClick={() => loadQAHistory(qaPage + 1, true)}
-                          className="text-sm text-slate-600 hover:text-slate-900 font-medium"
+                          className="text-sm text-slate-600 hover:text-primary font-medium"
                         >
                           Load More Questions
                         </button>
@@ -686,13 +686,13 @@ export default function ViewDetailsDialog({
                       }
                     }}
                     placeholder="Ask a question about this meeting..."
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     disabled={isSubmitting}
                   />
                   <button
                     onClick={handleAskQuestion}
                     disabled={!currentQuestion.trim() || isSubmitting}
-                    className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:bg-primary/30 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
                     {isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

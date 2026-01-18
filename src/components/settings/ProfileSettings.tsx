@@ -97,12 +97,12 @@ export function ProfileSettings({ user }: { user: User }) {
         <div className="pt-4 border-t border-neutral-200">
           <Button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 text-white font-medium"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
           >
             {isUpdatingProfile ? (
               <Loader2 className="animate-spin" />
             ) : (
-              <p>Update profile</p>
+              <p>Update Profile</p>
             )}
           </Button>
         </div>

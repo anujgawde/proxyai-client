@@ -15,10 +15,10 @@ export default function LandingHeader() {
     <header className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-            <Target className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <Target className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-slate-900">ProxyAI</span>
+          <span className="text-xl font-bold text-primary">ProxyAI</span>
         </div>
 
         <nav className="hidden md:flex items-center space-x-4">
@@ -44,7 +44,7 @@ export default function LandingHeader() {
             onClick={handleNavigate("/auth")}
             variant="outline"
             size="sm"
-            className="bg-transparent"
+            className="bg-primary text-white px-4 hover:bg-primary/90 hover:text-white cursor-pointer"
           >
             Sign In
           </Button>

@@ -21,13 +21,13 @@ export default function Navbar() {
         isHidden ? "hidden" : ""
       }`}
     >
-      <div className="flex items-center justify-center text-2xl text-[#003627] font-thin space-x-2 py-2">
+      <div className="flex items-center justify-center text-2xl font-thin space-x-2 py-2">
         <Link href="/meetings">
-          <div className="w-8 h-8 bg-[#1e2738] rounded-lg flex items-center justify-center">
-            <Target className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <Target className="w-5 h-5 text-primary-foreground" />
           </div>
         </Link>
-        <span className="text-2xl font-semibold text-[#1e2738]">ProxyAI</span>
+        <span className="text-2xl font-semibold text-primary">ProxyAI</span>
       </div>
 
       <div className="items-center space-x-2 flex">

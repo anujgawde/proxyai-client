@@ -54,11 +54,11 @@ function ProviderConnectionCard({ onConnect }: { onConnect: () => void }) {
       <div className="bg-white rounded-lg border border-gray-200 p-8 space-y-8">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full">
-            <Video className="w-8 h-8 text-blue-600" />
+            <Calendar className="w-8 h-8 text-blue-600" />
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900">
-            Connect Your Meeting Provider
+            Connect Your Calendar
           </h2>
           <p className="text-gray-600">
             Connect your calendar to start managing meetings
@@ -70,7 +70,7 @@ function ProviderConnectionCard({ onConnect }: { onConnect: () => void }) {
             onClick={onConnect}
             className="bg-slate-900 hover:bg-slate-800"
           >
-            Connect a Provider
+            Connect Calendar
           </Button>
           <p className="text-sm text-gray-500">
             You can disconnect at any time

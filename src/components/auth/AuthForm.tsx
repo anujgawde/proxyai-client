@@ -142,13 +142,13 @@ export default function AuthForm() {
       <CardHeader className="text-center">
         <div className="flex items-center justify-center mb-4">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-              <Target className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Target className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-slate-900">ProxyAI</span>
+            <span className="text-xl font-bold text-primary">ProxyAI</span>
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold text-slate-900">
+        <CardTitle className="text-2xl font-bold text-primary">
           {showForgotPassword
             ? "Reset Password"
             : isSignUp
@@ -243,7 +243,7 @@ export default function AuthForm() {
                       onChange={(e) => setFirstName(e.target.value)}
                       className={`mt-1 ${
                         errors.firstName ? "border-red-300" : "border-gray-300"
-                      } focus:border-slate-900 focus:ring-slate-900`}
+                      } focus:border-primary focus:ring-primary`}
                       disabled={loading || googleLoading}
                     />
                     {errors.firstName && (
@@ -267,7 +267,7 @@ export default function AuthForm() {
                       onChange={(e) => setLastName(e.target.value)}
                       className={`mt-1 ${
                         errors.lastName ? "border-red-300" : "border-gray-300"
-                      } focus:border-slate-900 focus:ring-slate-900`}
+                      } focus:border-primary focus:ring-primary`}
                       disabled={loading || googleLoading}
                     />
                     {errors.lastName && (
@@ -295,7 +295,7 @@ export default function AuthForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   className={`mt-1 ${
                     errors.email ? "border-red-300" : "border-gray-300"
-                  } focus:border-slate-900 focus:ring-slate-900`}
+                  } focus:border-primary focus:ring-primary`}
                   disabled={loading || googleLoading}
                 />
                 {errors.email && (
@@ -321,7 +321,7 @@ export default function AuthForm() {
                       onChange={(e) => setPassword(e.target.value)}
                       className={`mt-1 ${
                         errors.password ? "border-red-300" : "border-gray-300"
-                      } focus:border-slate-900 focus:ring-slate-900`}
+                      } focus:border-primary focus:ring-primary`}
                       disabled={loading || googleLoading}
                     />
                     {errors.password && (
@@ -350,7 +350,7 @@ export default function AuthForm() {
                           errors.confirmPassword
                             ? "border-red-300"
                             : "border-gray-300"
-                        } focus:border-slate-900 focus:ring-slate-900`}
+                        } focus:border-primary focus:ring-primary`}
                         disabled={loading || googleLoading}
                       />
                       {errors.confirmPassword && (
@@ -366,7 +366,7 @@ export default function AuthForm() {
               {/* Submit Button */}
               <Button
                 type="button"
-                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white text-base cursor-pointer"
+                className="w-full py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-base cursor-pointer"
                 disabled={loading || googleLoading}
                 onClick={handleEmailAuth}
               >
@@ -387,7 +387,7 @@ export default function AuthForm() {
                 <button
                   type="button"
                   onClick={handleBackToSignIn}
-                  className="text-sm font-medium text-slate-900 hover:text-slate-700 underline"
+                  className="text-sm font-medium text-primary hover:text-primary/80 underline"
                   disabled={loading || googleLoading}
                 >
                   Back to Sign In
@@ -404,7 +404,7 @@ export default function AuthForm() {
                     <button
                       type="button"
                       onClick={toggleAuthMode}
-                      className="ml-1 font-medium text-slate-900 hover:text-slate-700 underline cursor-pointer"
+                      className="ml-1 font-medium text-primary hover:text-primary/80 underline cursor-pointer"
                       disabled={loading || googleLoading}
                     >
                       {isSignUp ? "Sign in" : "Sign up"}
@@ -417,7 +417,7 @@ export default function AuthForm() {
                   <div className="text-center">
                     <button
                       type="button"
-                      className="text-sm font-medium text-slate-900 hover:text-slate-700 underline cursor-pointer"
+                      className="text-sm font-medium text-primary hover:text-primary/80 underline cursor-pointer"
                       disabled={loading || googleLoading}
                       onClick={() => setShowForgotPassword(true)}
                     >

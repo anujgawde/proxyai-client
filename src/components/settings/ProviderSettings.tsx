@@ -188,7 +188,7 @@ export default function ProviderSettings() {
                     <img
                       src={
                         provider.id === "google"
-                          ? "/meetings/googlemeet-logo.svg"
+                          ? "/calendars/google-calendar-logo.svg"
                           : provider.id === "microsoft"
                           ? "/meetings/teams-logo.svg"
                           : "/meetings/zoom-logo.svg"

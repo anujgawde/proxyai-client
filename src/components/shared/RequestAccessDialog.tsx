@@ -79,7 +79,7 @@ export default function RequestAccessDialog() {
       <DialogTrigger asChild>
         <Button
           size="lg"
-          className="bg-slate-900 hover:bg-slate-800 text-white text-lg px-8"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8"
         >
           Request Access
           <ArrowRight className="ml-2 w-5 h-5" />
@@ -183,7 +183,7 @@ export default function RequestAccessDialog() {
 
               <Button
                 onClick={handleSubmit}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 size="lg"
               >
                 Join Waitlist
