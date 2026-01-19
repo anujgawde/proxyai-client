@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Calendar, Clock, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProvider } from "@/contexts/ProviderContext";
 import { useRouter } from "next/navigation";
 import { meetingsService } from "@/api/meetings";
 import {
@@ -13,7 +14,6 @@ import {
   MeetingStatus,
   Summary,
 } from "@/types/meetings";
-import { checkProviderTokens } from "@/lib/utils";
 import ViewDetailsDialog from "@/components/meetings/ViewDetailsDialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -137,6 +137,7 @@ function MeetingsTabs({
 
 export default function MeetingsPage() {
   const { currentUser } = useAuth();
+  const { isAnyProviderConnected, loading: providerLoading } = useProvider();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<MeetingsTab>("scheduled");
@@ -147,7 +148,7 @@ export default function MeetingsPage() {
     cancelled: "past",
     no_show: "past",
   };
-  const [hasProviderToken, setHasProviderToken] = useState(false);
+  const hasProviderToken = isAnyProviderConnected();
   const [error, setError] = useState<string | null>(null);
 
   const [openMeeting, setOpenMeeting] = useState<MeetingListItem | null>(null);
@@ -352,37 +353,26 @@ export default function MeetingsPage() {
   /* ---------------------------------- */
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || providerLoading) return;
 
-    const init = async () => {
-      const providerStatus = checkProviderTokens();
-      const hasAnyProvider =
-        providerStatus.zoom ||
-        providerStatus.google ||
-        providerStatus.microsoft;
-
-      setHasProviderToken(hasAnyProvider);
-
-      if (hasAnyProvider) {
-        fetchMeetings("scheduled", 1);
-      }
-    };
-
-    init();
-  }, [currentUser]);
+    // Fetch initial meetings when provider is connected
+    if (hasProviderToken && !tabState.scheduled.initialized) {
+      fetchMeetings("scheduled", 1);
+    }
+  }, [currentUser, hasProviderToken, providerLoading]);
 
   /* ---------------------------------- */
   /* Lazy fetch per tab                 */
   /* ---------------------------------- */
 
   useEffect(() => {
-    if (!hasProviderToken) return;
+    if (!hasProviderToken || providerLoading) return;
 
     const current = tabState[activeTab];
     if (!current.initialized && !current.loading) {
       fetchMeetings(activeTab, 1);
     }
-  }, [activeTab, hasProviderToken]);
+  }, [activeTab, hasProviderToken, providerLoading]);
 
   const fetchMeetings = async (tab: MeetingsTab, page: number) => {
     setError(null);
@@ -423,7 +413,7 @@ export default function MeetingsPage() {
   /* Render Guards                      */
   /* ---------------------------------- */
 
-  if (!currentUser) {
+  if (!currentUser || providerLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin" />

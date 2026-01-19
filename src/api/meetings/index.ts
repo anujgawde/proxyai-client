@@ -1,6 +1,5 @@
 import { MeetingStatus, QAEntry, Summary } from "@/types/meetings";
 import { api } from "../api";
-import { STORAGE_KEYS } from "@/config";
 
 class MeetingsService {
   async getMeetingsByStatus(
@@ -16,34 +15,9 @@ class MeetingsService {
     return response.data;
   }
 
-  // Temporary: This method is for testing purposes only. Meetings will only be synced from the server.
+  // Trigger server-side meeting sync (tokens are managed server-side)
   async syncMeetings() {
-    const headers: Record<string, string> = {};
-
-    const zoomToken = localStorage.getItem(STORAGE_KEYS.ZOOM_TOKEN);
-    const googleToken = localStorage.getItem(STORAGE_KEYS.GOOGLE_TOKEN);
-    const microsoftToken = localStorage.getItem(STORAGE_KEYS.MICROSOFT_TOKEN);
-
-    if (zoomToken) {
-      headers["x-zoom-access-token"] = zoomToken;
-    }
-
-    if (googleToken) {
-      headers["x-google-access-token"] = googleToken;
-    }
-
-    if (microsoftToken) {
-      headers["x-microsoft-access-token"] = microsoftToken;
-    }
-
-    const response = await api.post(
-      "/meetings/sync",
-      {},
-      {
-        headers,
-      }
-    );
-
+    const response = await api.post("/meetings/sync", {});
     return response.data;
   }
 

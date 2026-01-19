@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Loader2, ExternalLink, AlertCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Check, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { STORAGE_KEYS } from "@/config";
-import { ProviderConnection } from "@/types/providers";
 import { providersService } from "@/api/providers";
+import { useProvider } from "@/contexts/ProviderContext";
 
 // Provider definition
 const PROVIDERS = [
@@ -61,35 +61,20 @@ const PROVIDERS = [
 
 // Provider Settings Component
 export default function ProviderSettings() {
-  const [connections, setConnections] = useState<ProviderConnection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { connections, loading, updateConnectionStatus, refreshConnections } =
+    useProvider();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(
-    null
+    null,
   );
+  const searchParams = useSearchParams();
 
+  // Refresh connections when redirected back from OAuth with ?connected= param
   useEffect(() => {
-    loadProviders();
-  }, []);
-
-  const loadProviders = () => {
-    setLoading(true);
-
-    // Check localStorage for tokens
-    const providerConnections: ProviderConnection[] = PROVIDERS.map(
-      (provider) => {
-        const token = localStorage.getItem(`${provider.id}_access_token`);
-
-        return {
-          provider: provider.id,
-          connected: !!token,
-          connectedAt: token ? new Date().toISOString() : undefined,
-        };
-      }
-    );
-
-    setConnections(providerConnections);
-    setLoading(false);
-  };
+    const connected = searchParams.get("connected");
+    if (connected) {
+      refreshConnections();
+    }
+  }, [searchParams, refreshConnections]);
 
   const handleConnect = async (providerId: string) => {
     setConnectingProvider(providerId);
@@ -123,24 +108,15 @@ export default function ProviderSettings() {
   };
 
   const handleDisconnect = async (providerId: string) => {
-    const provider = PROVIDERS.find((p) => p.id === providerId);
-
     // Todo: Add a Confirm Disconnect Dialog.
 
     try {
-      // Remove token from localStorage
-      const storageKey =
-        STORAGE_KEYS[
-          `${providerId.toUpperCase()}_TOKEN` as keyof typeof STORAGE_KEYS
-        ];
-      localStorage.removeItem(storageKey);
-
-      // Todo: Call backend to delete tokens
       await providersService.updateProvider(providerId, {
         isConnected: false,
       });
 
-      loadProviders();
+      // Update context state
+      updateConnectionStatus(providerId, false);
     } catch (error) {
       console.error(`Failed to disconnect from ${providerId}:`, error);
     }
@@ -190,8 +166,8 @@ export default function ProviderSettings() {
                         provider.id === "google"
                           ? "/calendars/google-calendar-logo.svg"
                           : provider.id === "microsoft"
-                          ? "/meetings/teams-logo.svg"
-                          : "/meetings/zoom-logo.svg"
+                            ? "/meetings/teams-logo.svg"
+                            : "/meetings/zoom-logo.svg"
                       }
                       className="h-5 w-5"
                     />
@@ -220,7 +196,7 @@ export default function ProviderSettings() {
                         onClick={() => handleDisconnect(provider.id)}
                         disabled={isConnecting}
                         variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        className="cursor-pointer text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                       >
                         Disconnect
                       </Button>
