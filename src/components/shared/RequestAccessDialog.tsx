@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 
 interface FormData {
   fullName: string;
@@ -32,6 +32,8 @@ interface FormData {
 export default function RequestAccessDialog() {
   const [open, setOpen] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -41,7 +43,7 @@ export default function RequestAccessDialog() {
     useCase: "",
   });
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     // Validate required fields
     if (
       !formData.fullName ||
@@ -54,20 +56,39 @@ export default function RequestAccessDialog() {
       return;
     }
 
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setError("");
 
-    setTimeout(() => {
-      setSubmitted(false);
-      setOpen(false);
-      setFormData({
-        fullName: "",
-        email: "",
-        company: "",
-        role: "",
-        teamSize: "",
-        useCase: "",
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
-    }, 2000);
+
+      if (!response.ok) {
+        throw new Error("Failed to submit");
+      }
+
+      setSubmitted(true);
+
+      setTimeout(() => {
+        setSubmitted(false);
+        setOpen(false);
+        setFormData({
+          fullName: "",
+          email: "",
+          company: "",
+          role: "",
+          teamSize: "",
+          useCase: "",
+        });
+      }, 2000);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (field: keyof FormData, value: string): void => {
@@ -181,12 +202,24 @@ export default function RequestAccessDialog() {
                 />
               </div>
 
+              {error && (
+                <p className="text-sm text-red-500 text-center">{error}</p>
+              )}
+
               <Button
                 onClick={handleSubmit}
+                disabled={isSubmitting}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 size="lg"
               >
-                Join Waitlist
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Join Waitlist"
+                )}
               </Button>
             </div>
           </>
