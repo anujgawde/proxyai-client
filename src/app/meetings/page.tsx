@@ -151,11 +151,7 @@ export default function MeetingsPage() {
   const hasProviderToken = isAnyProviderConnected();
   const [error, setError] = useState<string | null>(null);
 
-  const [openMeeting, setOpenMeeting] = useState<MeetingListItem | null>(null);
-
-  const [connectionStatus, setConnectionStatus] = useState<
-    "connecting" | "connected" | "disconnected"
-  >("connecting");
+  const [sseKey, setSseKey] = useState(0);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -176,8 +172,6 @@ export default function MeetingsPage() {
     );
 
     eventSource.onopen = () => {
-      setConnectionStatus("connected");
-
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -290,15 +284,10 @@ export default function MeetingsPage() {
       }
     };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE error:", error);
-      setConnectionStatus("disconnected");
+    eventSource.onerror = () => {
       eventSource.close();
-
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log("Attempting to reconnect...");
-        // Trigger re-render by updating a state value
-        setConnectionStatus("connecting");
+        setSseKey((k) => k + 1);
       }, 3000);
     };
 
@@ -312,15 +301,7 @@ export default function MeetingsPage() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [currentUser?.firebaseUid]); // Depend only on firebaseUid, not entire object
-
-  const viewDetailsHandler = (meetingId: number) => {
-    const openMeeting = tabState[activeTab].meetings.filter(
-      (meeting: MeetingListItem) => meeting.id === meetingId
-    );
-
-    setOpenMeeting(openMeeting[0]);
-  };
+  }, [currentUser?.firebaseUid, sseKey]);
 
   const [tabState, setTabState] = useState<
     Record<MeetingsTab, MeetingsTabState>
@@ -347,6 +328,19 @@ export default function MeetingsPage() {
       initialized: false,
     },
   });
+
+  const [openMeetingId, setOpenMeetingId] = useState<number | null>(null);
+  // Derived live from tabState — always reflects latest status from SSE
+  const openMeeting =
+    openMeetingId !== null
+      ? (Object.values(tabState) as MeetingsTabState[])
+          .flatMap((t) => t.meetings)
+          .find((m) => m.id === openMeetingId) ?? null
+      : null;
+
+  const viewDetailsHandler = (meetingId: number) => {
+    setOpenMeetingId(meetingId);
+  };
 
   /* ---------------------------------- */
   /* Initialization                     */
@@ -580,7 +574,7 @@ export default function MeetingsPage() {
             isOpen={!!openMeeting}
             meeting={openMeeting}
             currentUser={currentUser}
-            onClose={() => setOpenMeeting(null)}
+            onClose={() => setOpenMeetingId(null)}
           />
         )}
       </div>
