@@ -450,7 +450,7 @@ export default function MeetingsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {currentTab.meetings.map((meeting) => (
+            {[...currentTab.meetings].reverse().map((meeting) => (
               <div
                 key={meeting.id}
                 className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-sm transition-shadow relative"
