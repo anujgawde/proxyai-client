@@ -171,7 +171,7 @@ export default function MeetingsPage() {
     }
 
     const eventSource = new EventSource(
-      `${process.env.API_BASE_URL}/meetings/sse?userId=${currentUser.firebaseUid}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/meetings/sse?userId=${currentUser.firebaseUid}`,
       { withCredentials: true }
     );
 
